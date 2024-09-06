@@ -51,7 +51,8 @@ class OrderDetail(BaseModel):
     product = models.ForeignKey(Product, models.CASCADE, related_name='order_items')
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
-    totalPrice = models.DecimalField(max_digits=10, decimal_places=2)
+    totalPrice = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+
 class News(BaseModel):
     title = models.CharField(max_length=255, null=False)
     content = RichTextField()
