@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'cloudinary',
     'drf_yasg',
     'rest_framework',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
@@ -62,6 +63,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
 ]
 
 ROOT_URLCONF = 'fashion_store.urls'
@@ -120,6 +123,22 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS':
+        'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 2,
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+        'rest_framework.authentication.SessionAuthentication'
+    ),
+    'DEFAULT_PARSER_CLASSES': (
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser'
+    )
+
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
@@ -151,3 +170,15 @@ cloudinary.config(
     api_key="277385837862538",
     api_secret="T9Hzhi-HFkb8lO5OW5NmmgUE2kA"
 )
+
+
+ALLOWED_HOSTS = ['127.0.0.1', "localhost", '192.168.1.11', '192.168.9.88']
+
+CLIENT_ID = "6S6TebDMOHWLc8VQyXOuPq5Qe3CDVzAXw4O8DIya";
+CLIENT_SECRECT = "sKkn7mveZUEFxQf1ONP9HZLM2fgUGDRCwGZFVUKkXH4P8z646FjPRtjf6eEguyPFm3xzwoSwEKugrPdsbMV9YePHi5ys63ZSQtCG98GYF4U7Qjm2V4O4k1iEE0P7gAT0";
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3001",
+]
+
+CORS_ALLOW_ALL_ORIGINS = True

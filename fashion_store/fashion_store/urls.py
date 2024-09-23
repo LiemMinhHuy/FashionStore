@@ -10,7 +10,7 @@ schema_view = get_schema_view(
         title="Fashion Store API",
         default_version='v1',
         description="APIs for Fashion Store App",
-        contact=openapi.Contact(email="huy@ou.edu.vn"),
+        contact=openapi.Contact(email="2151050157huy@ou.edu.vn"),
         license=openapi.License(name="Huy"),
     ),
     public=True,
@@ -31,5 +31,5 @@ urlpatterns = [
             schema_view.with_ui('redoc', cache_timeout=0),
             name='schema-redoc'),
     path('o/', include('oauth2_provider.urls',
-                       namespace='oauth2_provider'))
+                       namespace='oauth2_provider')),
 ]

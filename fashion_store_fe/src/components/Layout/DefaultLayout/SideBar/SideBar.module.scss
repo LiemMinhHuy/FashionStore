@@ -1,0 +1,21 @@
+.wrapper {
+    height: 54px;
+    display: flex;
+    height: 54px;
+    border-bottom: 1px solid rgb(205, 205, 205);
+}
+
+.category {
+    display: flex;
+    margin-left: 12px;
+    align-items: center;
+    justify-content: center;
+    p {
+        margin-right: 6px;
+        font-weight: 600;
+    }
+    svg {
+        padding-right: 24px;
+        border-right: 1px solid rgb(205, 205, 205);
+    }
+}

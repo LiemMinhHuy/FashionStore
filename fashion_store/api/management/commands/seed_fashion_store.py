@@ -1,17 +1,11 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import random
 
 from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 from django_seed import Seed
 
-from api.models import User, Category, Product, Cart, CartItem, Order, OrderDetail, News, Like
-
-# Danh sách mẫu cho dữ liệu
-category_names = ["T-shirts", "Jeans", "Jackets", "Shoes", "Accessories"]
-product_names = ["Basic Tee", "Slim Jeans", "Leather Jacket", "Running Shoes", "Sunglasses"]
-shipping_addresses = ["123 Main St", "456 Elm St", "789 Oak St", "321 Pine St", "654 Maple Ave"]
-payment_statuses = ["Paid", "Pending", "Failed"]
+from api.models import User, Category, Product, Cart, CartItem, Order, OrderDetail, News, Like, Customer
 
 class Command(BaseCommand):
     help = "Seed the database with initial data for testing and development."
@@ -20,7 +14,7 @@ class Command(BaseCommand):
         seeder = Seed.seeder(locale="en_US")
 
         # Tạo dữ liệu mẫu cho bảng User
-        seeder.add_entity(User, 10, {
+        seeder.add_entity(User, 50, {
             "avatar": "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample",
             "last_login": None,
             "password": make_password("password123"),
@@ -30,9 +24,18 @@ class Command(BaseCommand):
             "username": lambda x: seeder.faker.user_name(),
         })
 
+        # Tạo dữ liệu mẫu cho bảng Customer
+        seeder.add_entity(Customer, 150, {
+            "avatar": "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample",
+            "last_login": None,
+            "password": make_password("password123"),
+            "email": lambda x: seeder.faker.email(),
+            "username": lambda x: seeder.faker.user_name(),
+        })
+
         # Tạo dữ liệu mẫu cho bảng Category
-        seeder.add_entity(Category, len(category_names), {
-            "name": lambda x: category_names.pop(),
+        seeder.add_entity(Category, 50, {
+            "name": lambda x: seeder.faker.word(),
         })
 
         # Thực thi việc tạo dữ liệu mẫu cho User và Category trước để dùng trong các bảng khác
@@ -40,19 +43,19 @@ class Command(BaseCommand):
 
         # Lấy các bản ghi đã tạo để sử dụng cho các bảng có liên kết
         categories = list(Category.objects.all())
-        users = list(User.objects.all())
+        customers = list(Customer.objects.all())
 
         # Tạo dữ liệu mẫu cho bảng Product
-        seeder.add_entity(Product, len(product_names), {
-            "name": lambda x: product_names.pop(),
+        seeder.add_entity(Product, 200, {
+            "name": lambda x: seeder.faker.word(),
             "price": lambda x: round(random.uniform(10.0, 500.0), 2),
             "category": lambda x: random.choice(categories),
             "image": "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-5"
         })
 
         # Tạo dữ liệu mẫu cho bảng Cart
-        seeder.add_entity(Cart, 10, {
-            "user": lambda x: random.choice(users),
+        seeder.add_entity(Cart, 200, {
+            "user": lambda x: random.choice(customers),
         })
 
         # Thực thi việc tạo dữ liệu mẫu cho Product và Cart
@@ -63,18 +66,18 @@ class Command(BaseCommand):
         products = list(Product.objects.all())
 
         # Tạo dữ liệu mẫu cho bảng CartItem
-        seeder.add_entity(CartItem, 50, {
+        seeder.add_entity(CartItem, 200, {
             "cart": lambda x: random.choice(carts),
             "product": lambda x: random.choice(products),
             "quantity": lambda x: random.randint(1, 5)
         })
 
         # Tạo dữ liệu mẫu cho bảng Order
-        seeder.add_entity(Order, 10, {
-            "user": lambda x: random.choice(users),
+        seeder.add_entity(Order, 200, {
+            "user": lambda x: random.choice(customers),
             "total_amount": lambda x: round(random.uniform(50.0, 1000.0), 2),
-            "payment_status": lambda x: random.choice(payment_statuses),
-            "shipping_address": lambda x: random.choice(shipping_addresses)
+            "payment_status": lambda x: random.choice(["Paid", "Pending", "Failed"]),
+            "shipping_address": lambda x: random.choice(["123 Main St", "456 Elm St", "789 Oak St", "321 Pine St", "654 Maple Ave"])
         })
 
         # Thực thi việc tạo dữ liệu mẫu cho CartItem và Order
@@ -84,7 +87,7 @@ class Command(BaseCommand):
         orders = list(Order.objects.all())
 
         # Tạo dữ liệu mẫu cho bảng OrderDetail
-        seeder.add_entity(OrderDetail, 50, {
+        seeder.add_entity(OrderDetail, 200, {
             "order": lambda x: random.choice(orders),
             "product": lambda x: random.choice(products),
             "quantity": lambda x: random.randint(1, 3),
@@ -93,19 +96,18 @@ class Command(BaseCommand):
         })
 
         # Tạo dữ liệu mẫu cho bảng News
-        seeder.add_entity(News, 10, {
+        seeder.add_entity(News, 200, {
             "title": lambda x: seeder.faker.sentence(),
             "content": lambda x: seeder.faker.paragraph(),
             "image": "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-5"
         })
 
         # Tạo dữ liệu mẫu cho bảng Like
-        seeder.add_entity(Like, 50, {
-            "user": lambda x: random.choice(users),
+        seeder.add_entity(Like, 200, {
+            "user": lambda x: random.choice(customers),
             "news": lambda x: random.choice(News.objects.all()),
         })
 
-        # Thực thi việc tạo dữ liệu mẫu cuối cùng
         inserted_pks.update(seeder.execute())
 
         self.stdout.write(self.style.SUCCESS('Database seeded successfully with initial data for Fashion Store.'))
