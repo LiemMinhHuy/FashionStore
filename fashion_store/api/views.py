@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from rest_framework import viewsets, generics, status, parsers, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -81,4 +82,62 @@ class UserViewSet(viewsets.ViewSet, generics.RetrieveUpdateAPIView, generics.Lis
             return [builtin_permission.AllowAny(), ]
 
         return [builtin_permission.IsAuthenticated(), ]
+
+
+
+from django.http import JsonResponse
+from rest_framework.views import APIView
+import requests
+from rest_framework import permissions
+from django.conf import settings
+import logging
+
+# Tạo logger
+logger = logging.getLogger(__name__)
+
+
+class LoginView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        logger.info("LoginView.post called")  # Ghi lại thông tin khi phương thức được gọi
+
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        # Kiểm tra xem username và password có được cung cấp không
+        if not username or not password:
+            logger.warning("Missing username or password")  # Ghi lại cảnh báo
+            return JsonResponse({'error': 'Username và password là bắt buộc'}, status=400)
+
+        TOKEN_URL = 'http://127.0.0.1:8000/o/token/'  # Địa chỉ token endpoint
+
+        # Gửi yêu cầu đến token endpoint với client_id và client_secret từ backend
+        logger.info("Requesting token with:")
+        logger.info(f"Username: {username}, Password: {password}")
+        logger.info(f"CLIENT_ID: {settings.CLIENT_ID}")
+        logger.info(f"CLIENT_SECRET: {settings.CLIENT_SECRET}")
+
+        response = requests.post(TOKEN_URL, data={
+            'grant_type': 'password',
+            'username': username,
+            'password': password,
+            'client_id': settings.CLIENT_ID,
+            'client_secret': settings.CLIENT_SECRET
+        }, timeout=10)  # Thêm timeout cho yêu cầu để tránh treo lâu quá
+
+        logger.info("Response Status Code: %s", response.status_code)
+        logger.info("Response Content: %s", response.content)
+
+        if response.status_code == 200:
+            token_data = response.json()
+            return JsonResponse({
+                'access_token': token_data.get('access_token'),
+                'refresh_token': token_data.get('refresh_token'),
+                'expires_in': token_data.get('expires_in')
+            }, status=200)
+        else:
+            logger.error("Token request failed: %s", response.json())  # Ghi lại lỗi nếu yêu cầu không thành công
+            return JsonResponse(response.json(), status=response.status_code)
+
 

@@ -19,8 +19,8 @@ class BaseModel(models.Model):
 
 class User(AbstractUser):
     avatar = CloudinaryField(null=True)
-    created_at = models.DateTimeField(auto_now=True, null=False)
-    uploaded_at = models.DateTimeField(auto_now_add=True, null=False)
+    created_at = models.DateTimeField(auto_now_add=True, null=False)
+    updated_at = models.DateTimeField(auto_now=True, null=False)
 
 class Customer(User):
     class Meta:

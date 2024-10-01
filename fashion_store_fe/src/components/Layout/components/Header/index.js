@@ -6,10 +6,13 @@ import { faCartShopping, faHeart, faUser } from '@fortawesome/free-solid-svg-ico
 import Search from '../Search/Search';
 import 'tippy.js/dist/tippy.css';
 import Tippy from '@tippyjs/react';
+import { Link } from 'react-router-dom';
 
 const cx = classNames.bind(styles);
 
 function Header() {
+    const currentUser = false;
+
     return (
         <header className={cx('wrapper')}>
             <div>
@@ -31,11 +34,21 @@ function Header() {
                         <span className={cx('badge')}>12</span>
                     </button>
                 </Tippy>
-                <Tippy delay={[0, 50]} content="Login" placement="bottom">
-                    <button className={cx('account')}>
-                        <FontAwesomeIcon icon={faUser} />
-                    </button>
-                </Tippy>
+                {currentUser ? (
+                    <img
+                        className={cx('user-avatar')}
+                        src="https://res.cloudinary.com/ddoebyozj/image/upload/v1727621006/16b2e2579118bf6fba3b56523583117f_mpdtkl.jpg"
+                        alt="avartar"
+                    />
+                ) : (
+                    <Link to="/login">
+                        <Tippy delay={[0, 50]} content="Login" placement="bottom">
+                            <button className={cx('account')}>
+                                <FontAwesomeIcon icon={faUser} />
+                            </button>
+                        </Tippy>
+                    </Link>
+                )}
             </div>
         </header>
     );

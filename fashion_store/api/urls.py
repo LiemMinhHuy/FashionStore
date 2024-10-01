@@ -9,5 +9,6 @@ r.register('products', views.ProductViewSet, basename='products')
 r.register('users', views.UserViewSet, basename='users')
 
 urlpatterns = [
+    path('login/', views.LoginView.as_view(), name='login'),
     path('', include(r.urls)),
 ]
