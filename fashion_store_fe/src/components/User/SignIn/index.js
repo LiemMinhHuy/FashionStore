@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './SignIn.module.scss';
 import classNames from 'classnames/bind';
 import { GoogleIcon } from '~/Icons';
 import * as loginService from '~/api/loginService';
 import { useNavigate } from 'react-router-dom';
+import { MyDispatchContext } from '~/utils/context';
+import { authApi } from '~/utils/request';
 
 const cx = classNames.bind(styles);
 
 export default function SignIn() {
+    const dispatch = useContext(MyDispatchContext);
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
@@ -24,16 +27,26 @@ export default function SignIn() {
         try {
             const response = await loginService.login(username, password);
 
-            // In ra token để xác nhận API trả về đúng dữ liệu
             console.log('Login successful:', response);
 
-            // Nếu đăng nhập thành công, xử lý token (lưu vào localStorage hoặc state)
             localStorage.setItem('access_token', response.access_token);
+
+            setTimeout(async () => {
+                let user = await authApi(response.access_token).get('users/current-user/');
+                console.info(user.data);
+
+                // Dispatch action để cập nhật state của người dùng
+                dispatch({
+                    type: 'login',
+                    payload: user.data,
+                });
+
+                // Điều hướng về trang chủ
+                navigate('/');
+            }, 100);
 
             // Xóa lỗi nếu thành công
             setError(null);
-
-            navigate('/');
         } catch (error) {
             // Xử lý lỗi đăng nhập
             console.error('Login error:', error);

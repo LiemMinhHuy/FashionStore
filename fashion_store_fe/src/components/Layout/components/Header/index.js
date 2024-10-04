@@ -15,10 +15,8 @@ function Header() {
 
     return (
         <header className={cx('wrapper')}>
-            <div>
-                <div className={cx('logo')}>
-                    <img src={images.logo} alt="HUI" />
-                </div>
+            <div className={cx('logo')}>
+                <img src={images.logo} alt="HUI" />
             </div>
 
             <div className={cx('inner')}>

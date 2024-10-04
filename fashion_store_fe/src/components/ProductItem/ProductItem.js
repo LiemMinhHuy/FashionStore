@@ -7,7 +7,7 @@ const cx = classNames.bind(styles);
 
 function ProductItem({ data }) {
     return (
-        <Link to={`/@${data.id}`} className={cx('wrapper')}>
+        <Link to={`/products/category/${data.id}`} className={cx('wrapper')}>
             <div className={cx('info')}>
                 <h4 className={cx('name')}>
                     <span>{data.name}</span>

@@ -1,8 +1,9 @@
+/* SideBar/SideBar.module.scss */
 .wrapper {
-    height: 54px;
     display: flex;
-    height: 54px;
     border-bottom: 1px solid rgb(205, 205, 205);
+    margin-top: 64px;
+    padding: 15px 0;
 }
 
 .category {
@@ -10,12 +11,46 @@
     margin-left: 12px;
     align-items: center;
     justify-content: center;
+    position: relative;
+
     p {
         margin-right: 6px;
         font-weight: 600;
+        cursor: pointer;
     }
-    svg {
-        padding-right: 24px;
-        border-right: 1px solid rgb(205, 205, 205);
+
+    // Thanh dưới chân xuất hiện khi hover hoặc khi active
+    &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background-color: #000; // Màu của thanh dưới chân
+        transition: width 0.3s ease;
     }
+
+    // Khi hover, mở rộng thanh dưới chân
+    &:hover::after {
+        width: 100%;
+    }
+
+    // Khi active, hiển thị thanh dưới chân
+    &.active::after {
+        width: 100%;
+    }
+}
+
+.title {
+    padding: 5px 12px;
+    font-size: 1.6rem;
+    font-weight: 600;
+}
+
+.cate-list {
+    width: 260px;
+    padding: 10px;
+    border-radius: 4px;
+    margin-left: 48px;
 }

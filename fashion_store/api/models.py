@@ -5,6 +5,7 @@ from ckeditor.fields import RichTextField
 from django.core import validators
 from django.db.models import Sum
 from rest_framework.exceptions import ValidationError
+from django.db.models import Sum, F, FloatField
 
 customer_permission = [('customer', 'Has customer permissions')]
 staff_permission = [('staff', 'Has staff permissions')]
@@ -41,12 +42,21 @@ class Product(BaseModel):
     price = models.DecimalField(max_digits=10, decimal_places=2)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
     image = models.ImageField(upload_to='products/%Y/%m', default=None)
+    quantity = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return self.name
 
+from django.db import models
+
 class Cart(BaseModel):
-    user = models.ForeignKey('Customer', on_delete=models.CASCADE, related_name='carts')
+    user = models.OneToOneField('Customer', on_delete=models.CASCADE, related_name='cart')
+
+    @property
+    def total_amount(self):
+        return self.items.aggregate(
+            total=Sum(F('quantity') * F('product__price'), output_field=FloatField())
+        )['total'] or 0
 
 
 class CartItem(BaseModel):
@@ -54,10 +64,33 @@ class CartItem(BaseModel):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='cart_items')
     quantity = models.PositiveIntegerField()
 
+    class Meta:
+        unique_together = ('cart', 'product')
+
+    @property
+    def total_price(self):
+        return self.quantity * self.product.price
+
 class Order(BaseModel):
+    PAYMENT_STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('Processing', 'Processing'),
+        ('Completed', 'Completed'),
+        ('Failed', 'Failed'),
+        ('Refunded', 'Refunded'),
+    ]
+
+    PAYMENT_METHOD_CHOICES = [
+        ('VNPay', 'VNPay'),
+        ('Cash', 'Tiền mặt'),
+        ('CreditCard', 'Thẻ tín dụng'),
+        ('BankTransfer', 'Chuyển khoản ngân hàng'),
+    ]
+
     user = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='orders')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
-    payment_status = models.CharField(max_length=50)
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default='Pending')
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default='Cash')
     shipping_address = models.CharField(max_length=255)
 
 class OrderDetail(BaseModel):
