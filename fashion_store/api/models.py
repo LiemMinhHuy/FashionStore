@@ -1,9 +1,10 @@
+from django.utils import timezone
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from cloudinary.models import CloudinaryField
 from ckeditor.fields import RichTextField
 from django.core import validators
-from django.db.models import Sum
 from rest_framework.exceptions import ValidationError
 from django.db.models import Sum, F, FloatField
 
@@ -46,8 +47,6 @@ class Product(BaseModel):
 
     def __str__(self):
         return self.name
-
-from django.db import models
 
 class Cart(BaseModel):
     user = models.OneToOneField('Customer', on_delete=models.CASCADE, related_name='cart')
@@ -114,9 +113,24 @@ class NewsComment(BaseModel):
     content = models.TextField()
     parent_comment = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')
 
-class Like(BaseModel):
-    user = models.ForeignKey(Customer, on_delete=models.CASCADE, related_name='likes')
-    news = models.ForeignKey(News, on_delete=models.CASCADE, related_name='likes')
+
+class Interaction(BaseModel):  # Kế thừa BaseModel
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.user_id} - {self.product_id}'
 
     class Meta:
-        unique_together = ('user', 'news')
+        abstract = True
+
+class Like(Interaction):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, null=True)   # Replace with a valid Product ID
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'product'], name='unique_user_product_like')
+        ]
+
+
+

@@ -16,7 +16,6 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(',')
 
 # Application definition
 
@@ -53,18 +52,22 @@ ROOT_URLCONF = 'fashion_store.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # Thêm các đường dẫn tùy chỉnh nếu cần
+        'DIRS': [
+            # Thêm thư mục mẫu của bạn nếu cần
+            BASE_DIR / 'templates',  # Ví dụ, nếu bạn có thư mục templates ở thư mục gốc của dự án
+        ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request',  # Bắt buộc cho DRF-YASG
+                'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
         },
     },
 ]
+
 
 WSGI_APPLICATION = 'fashion_store.wsgi.application'
 
@@ -145,10 +148,12 @@ CKEDITOR_UPLOAD_PATH = "fashionStore/images"
 import cloudinary
 
 cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.getenv("CLOUDINARY_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET")
+    cloud_name="ddoebyozj",
+    api_key="277385837862538",
+    api_secret="T9Hzhi-HFkb8lO5OW5NmmgUE2kA"
 )
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
@@ -158,6 +163,11 @@ CORS_ALLOWED_ORIGINS = [
 # Disable CORS_ALLOW_ALL_ORIGINS if CORS_ALLOWED_ORIGINS is specified
 CORS_ALLOW_ALL_ORIGINS = False
 
+ALLOWED_HOSTS = [
+    '127.0.0.1',
+    'localhost',
+    '8531-2001-ee0-4f02-5180-759d-c770-f8c8-8ff0.ngrok-free.app',  # Thay bằng URL Ngrok của bạn
+]
 
 
 # OAuth2 Provider Configuration
@@ -173,5 +183,9 @@ OAUTH2_PROVIDER = {
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 
-print(CLIENT_ID)
-print(CLIENT_SECRET)
+
+# VNPay configuration
+VNPAY_TMN_CODE = 'GMD8US5K'
+VNPAY_HASH_SECRET_KEY = 'MFHLIN0QCOVF9ZW1UVB0WI7NVTZ0DYH5'
+VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'
+VNPAY_RETURN_URL = 'http://127.0.0.1:8000/vnpay/payment_return/'  # Thay thế bằng URL của bạn

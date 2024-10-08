@@ -1,21 +1,86 @@
-from django.http import JsonResponse
-from rest_framework import viewsets, generics, status, parsers, permissions
-from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
-from rest_framework.response import Response
+from rest_framework import generics
+from rest_framework.utils.serializer_helpers import ReturnDict
 from rest_framework.views import APIView
 from rest_framework import permissions as builtin_permission
-from django.shortcuts import get_object_or_404
-from django.db import transaction
+
+from urllib.parse import urlencode
+from datetime import datetime
+from django.http import JsonResponse, HttpResponseRedirect
+
+from rest_framework import status, viewsets, permissions
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from django.shortcuts import get_object_or_404, redirect, render
 
 import requests
 from django.conf import settings
-import logging
 
-from api.models import Product, Category, User, Cart, CartItem, Order, OrderDetail, Customer
-from api import serializers, paginators
+from api.models import Product, Category, User, Cart, CartItem, Order, OrderDetail, Customer, Like
+from api import serializers, paginators, forms, utils
+import logging
+from rest_framework.response import Response
+from rest_framework import status
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
+
+import hashlib
+import urllib.parse
+import logging
+
+logger = logging.getLogger(__name__)
+
+class vnpay:
+    def __init__(self, secret_key):
+        self.secret_key = secret_key
+        self.params = {}
+
+    def add_param(self, key, value):
+        """Thêm tham số vào danh sách tham số."""
+        self.params[key] = value
+
+    def create_secure_hash(self):
+        """Tạo chữ ký SHA256 cho các tham số."""
+        # Sắp xếp các tham số theo tên khóa tăng dần
+        sorted_params = sorted(self.params.items())
+        data_string = '&'.join([f"{key}={value}" for key, value in sorted_params])
+        logger.debug(f"Data string for hashing: {data_string}")
+
+        # Thêm khóa bí mật vào cuối chuỗi
+        hash_data = f"{data_string}&{self.secret_key}".encode('utf-8')
+        logger.debug(f"Hash data string: {hash_data}")
+
+        # Tạo chữ ký SHA256
+        secure_hash = hashlib.sha256(hash_data).hexdigest().upper()
+        logger.debug(f"Generated Secure Hash: {secure_hash}")
+
+        return secure_hash
+
+    def get_payment_url(self, base_url):
+        """Tạo URL thanh toán với chữ ký."""
+        secure_hash = self.create_secure_hash()
+        encoded_params = urllib.parse.urlencode(self.params)
+        payment_url = f"{base_url}?{encoded_params}&vnp_SecureHash={secure_hash}"
+        logger.debug(f"Generated Payment URL: {payment_url}")
+        return payment_url
+
+    def validate_response(self, response_data):
+        """Xác thực chữ ký từ phản hồi của VNPAY."""
+        secure_hash = response_data.get('vnp_SecureHash')
+        if not secure_hash:
+            return False
+
+        # Xóa chữ ký ra khỏi các tham số để tạo lại chữ ký
+        response_data.pop('vnp_SecureHash', None)
+        self.params = response_data  # Cập nhật params với dữ liệu phản hồi
+
+        # Tạo chữ ký mới từ các tham số đã nhận
+        computed_hash = self.create_secure_hash()
+        is_valid = computed_hash == secure_hash
+        logger.debug(f"Response is valid: {is_valid}")
+        return is_valid
+
+
 
 class CategoryViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Category.objects.filter(is_active=True)
@@ -45,6 +110,12 @@ class ProductViewSet(viewsets.ViewSet, generics.ListAPIView):
     queryset = Product.objects.filter(is_active=True)
     serializer_class = serializers.ProductSerializer
     pagination_class = paginators.ProductPaginator
+
+    def get_permissions(self):
+        if self.action in ['like']:
+            return [permissions.IsAuthenticated()]
+
+        return [permissions.AllowAny()]
 
     def get_queryset(self):
         queryset = self.queryset
@@ -99,27 +170,41 @@ class ProductViewSet(viewsets.ViewSet, generics.ListAPIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+    @action(methods=['post'], detail=True, url_path='like')
+    def like(self, request, pk=None):
+        product = self.get_object()  # Get the product/lesson based on the primary key
+        like, created = Like.objects.get_or_create(product=product, user=request.user)
+
+        if not created:
+            # Toggle the active status
+            like.active = not like.active
+            like.save()
+
+        # Return the updated lesson details with the liked status
+        return Response(serializers.AuthenticatedProductDetailsSerializer(product).data, status=status.HTTP_200_OK)
+
 class UserViewSet(viewsets.ViewSet, generics.RetrieveUpdateAPIView, generics.ListCreateAPIView):
     queryset = User.objects.filter(is_active=True)
     serializer_class = serializers.UserSerializer
     pagination_class = paginators.UserPaginator
+
     def get_permissions(self):
         if self.action in ['partial_update']:
             return [permissions.UserOwnerPermission(), ]
         elif self.action in ['create']:
-            return [builtin_permission.AllowAny(), ]
+            return [permissions.AllowAny(), ]
 
-        return [builtin_permission.IsAuthenticated(), ]
+        return [permissions.IsAuthenticated(), ]
 
     @action(methods=['get', 'patch'], url_path='current-user', detail=False)
     def get_current_user(self, request):
         user = request.user
-        if request.method.__eq__('PATCH'):
+        if request.method == 'PATCH':
             for k, v in request.data.items():
                 setattr(user, k, v)
             user.save()
 
-        return Response(serializers.UserSerializer(user).data)
+        return Response(self.get_serializer(user).data)
 
 class LoginView(APIView):
     permission_classes = [permissions.AllowAny]
@@ -165,24 +250,25 @@ class LoginView(APIView):
             logger.error("Token request failed: %s", response.json())  # Ghi lại lỗi nếu yêu cầu không thành công
             return JsonResponse(response.json(), status=response.status_code)
 
-class CartViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
+class CartViewSet(viewsets.ViewSet):
     serializer_class = serializers.CartSerializer
-
-    # Khai báo queryset để tránh lỗi
+    permission_classes = [permissions.IsAuthenticated]
     queryset = Cart.objects.all()
 
     def get_object(self):
-        cart, created = Cart.objects.get_or_create(user=self.request.user)
+        customer = get_object_or_404(Customer, id=self.request.user.id)
+        cart, created = Cart.objects.get_or_create(user=customer)
         return cart
 
-    def get_permissions(self):
-        if self.action in ['add_to_cart', 'remove_cart']:
-            return [builtin_permission.IsAuthenticated(), ]
-        return super().get_permissions()
+    def retrieve(self, request):
+        cart = self.get_object()
+        serializer = self.serializer_class(cart)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=['post'], detail=False, url_path='add-cart')
     def add_to_cart(self, request):
         cart_items_data = request.data.get('items', [])
+        cart = self.get_object()  # Lấy giỏ hàng của người dùng
         cart_items = []
 
         for item_data in cart_items_data:
@@ -192,17 +278,11 @@ class CartViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
             if quantity is None or quantity <= 0:
                 return Response({'detail': 'Số lượng phải lớn hơn không'}, status=status.HTTP_400_BAD_REQUEST)
 
-            try:
-                product = Product.objects.get(id=product_id)
-            except Product.DoesNotExist:
-                return Response({'detail': f'Sản phẩm với id {product_id} không tồn tại'},
-                                status=status.HTTP_404_NOT_FOUND)
+            product = get_object_or_404(Product, id=product_id)
 
             if product.quantity < quantity:
                 return Response({'detail': f'Không đủ hàng cho sản phẩm {product_id}'},
                                 status=status.HTTP_400_BAD_REQUEST)
-
-            cart, created = Cart.objects.get_or_create(user=request.user)
 
             # Tạo hoặc cập nhật CartItem với số lượng
             cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product,
@@ -220,88 +300,260 @@ class CartViewSet(viewsets.ViewSet, generics.RetrieveAPIView):
 
     @action(methods=['delete'], detail=False, url_path='remove/(?P<cart_item_id>[^/.]+)')
     def remove_cart(self, request, cart_item_id=None):
-        cart = get_object_or_404(Cart, user=request.user)
-        try:
-            cart_item = CartItem.objects.get(cart=cart, id=cart_item_id)
-            cart_item.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except CartItem.DoesNotExist:
-            return Response({'detail': 'Sản phẩm không tồn tại trong giỏ hàng'}, status=status.HTTP_404_NOT_FOUND)
+        cart = self.get_object()
+        cart_item = get_object_or_404(CartItem, cart=cart, id=cart_item_id)
+        cart_item.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
+    @action(methods=['patch'], detail=False, url_path='update-cart-item/(?P<cart_item_id>[^/.]+)')
+    def update_cart_item(self, request, cart_item_id=None):
+        cart = self.get_object()
+        cart_item = get_object_or_404(CartItem, cart=cart, id=cart_item_id)
+
+        quantity = request.data.get('quantity')
+
+        if quantity is None or quantity <= 0:
+            return Response({'detail': 'Số lượng phải lớn hơn không'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if cart_item.product.quantity < quantity:
+            return Response({'detail': 'Không đủ hàng'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Cập nhật số lượng
+        cart_item.quantity = quantity
+        cart_item.save()
+
+        return Response({'detail': 'Số lượng sản phẩm đã được cập nhật', 'quantity': cart_item.quantity},
+                        status=status.HTTP_200_OK)
+
+from rest_framework.request import Request
+# Xóa hoặc gộp các định nghĩa trùng lặp của OrderViewSet
 class OrderViewSet(viewsets.ViewSet, generics.ListCreateAPIView):
     queryset = Order.objects.filter(is_active=True)
     serializer_class = serializers.OrderSerializer
-    permission_classes = [builtin_permission.IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
+    pagination_class = paginators.OrderPaginator
 
     def get_queryset(self):
-        # Lọc đơn hàng theo người dùng hiện tại
         return self.queryset.filter(user=self.request.user)
+
+    @action(methods=['get'], detail=False, url_path='user-orders')
+    def user_orders(self, request):
+        user = get_object_or_404(Customer, id=request.user.id)
+        orders = Order.objects.filter(user=user, is_active=True)
+        serializer = self.get_serializer(orders, many=True)
+        return Response(serializer.data)
 
     @action(methods=['post'], detail=False, url_path='checkout')
     def checkout(self, request):
         user = request.user
-
-        # Lấy đối tượng Customer từ User
         try:
-            customer = Customer.objects.get(username=user.username)  # hoặc user.id
+            customer = Customer.objects.get(username=user.username)
         except Customer.DoesNotExist:
             return Response({'error': 'Người dùng không phải là khách hàng'}, status=status.HTTP_400_BAD_REQUEST)
 
         shipping_address = request.data.get('shipping_address')
-        payment_method = request.data.get('payment_method', 'Cash')  # Nhận phương thức thanh toán từ frontend
-        payment_status = 'Pending'  # Khởi tạo trạng thái thanh toán
+        payment_method = request.data.get('payment_method', 'Cash')
 
-        # Kiểm tra phương thức thanh toán hợp lệ
-        valid_payment_methods = [choice[0] for choice in Order.PAYMENT_METHOD_CHOICES]
-        if payment_method not in valid_payment_methods:
+        # Kiểm tra phương thức thanh toán
+        if payment_method not in [choice[0] for choice in Order.PAYMENT_METHOD_CHOICES]:
             return Response({'error': 'Phương thức thanh toán không hợp lệ'}, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            cart = Cart.objects.filter(user=customer).first()  # Thay đổi ở đây
-            if not cart:
-                return Response({'error': 'Giỏ hàng không tồn tại'}, status=status.HTTP_400_BAD_REQUEST)
+        cart = Cart.objects.filter(user=customer).first()
+        if not cart or not cart.items.exists():
+            return Response({'error': 'Giỏ hàng không tồn tại hoặc trống'}, status=status.HTTP_400_BAD_REQUEST)
 
-            cart_items = cart.items.select_related('product')
-            if not cart_items.exists():
-                return Response({'error': 'Giỏ hàng trống'}, status=status.HTTP_400_BAD_REQUEST)
+        total_amount = sum(item.product.price * item.quantity for item in cart.items.all())
 
-            with transaction.atomic():
-                total_amount = 0
-                for item in cart_items:
-                    product = item.product
-                    if product.quantity < item.quantity:
-                        raise ValidationError(f'Số lượng sản phẩm {product.name} không đủ')
+        # Kiểm tra số tiền tối thiểu
+        if total_amount < 1000:
+            return Response({'error': 'Số tiền tối thiểu để thanh toán là 1,000 VND'},
+                            status=status.HTTP_400_BAD_REQUEST)
 
-                    product.quantity -= item.quantity
-                    product.save()
-                    total_amount += item.quantity * product.price
+        # Tạo đơn hàng
+        order = Order.objects.create(
+            user=customer,
+            total_amount=total_amount,
+            payment_method=payment_method,
+            shipping_address=shipping_address,
+            created_at=timezone.localtime(),
+        )
 
-                order = Order.objects.create(
-                    user=customer,  # Gán đúng đối tượng Customer
-                    total_amount=total_amount,
-                    payment_status=payment_status,
-                    payment_method=payment_method,
-                    shipping_address=shipping_address
-                )
+        # Xử lý thanh toán VNPay
+        if payment_method == 'VNPay':
+            vnp = vnpay(settings.VNPAY_HASH_SECRET_KEY)
 
-                for item in cart_items:
-                    OrderDetail.objects.create(
-                        order=order,
-                        product=item.product,
-                        quantity=item.quantity,
-                        unit_price=item.product.price,
-                        totalPrice=item.quantity * item.product.price
-                    )
+            # Thêm tham số thanh toán
+            vnp.add_param("order_type", "billpayment")
+            vnp.add_param("order_id", str(order.id))
+            vnp.add_param("amount", total_amount * 100)  # Chuyển sang đơn vị VND
+            vnp.add_param("order_desc", f"Thanh toán đơn hàng {order.id}")
+            vnp.add_param("bank_code", "")  # Hoặc mã ngân hàng nếu cần
+            vnp.add_param("language", "vn")
+            vnp.add_param("vnp_IpAddr", utils.get_client_ip(request))
+            vnp.add_param("vnp_CreateDate", timezone.now().strftime('%Y%m%d%H%M%S'))
+            vnp.add_param("vnp_ReturnUrl", settings.VNPAY_RETURN_URL)
 
-                # Xóa các mục trong giỏ hàng sau khi thanh toán thành công
-                cart_items.delete()
+            # Tạo URL thanh toán
+            payment_url = vnp.get_payment_url(settings.VNPAY_PAYMENT_URL)
 
-            serializer = serializers.OrderSerializer(order)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response({'payment_url': payment_url}, status=status.HTTP_200_OK)
 
-        except Cart.DoesNotExist:
-            return Response({'error': 'Giỏ hàng không tồn tại'}, status=status.HTTP_400_BAD_REQUEST)
-        except ValidationError as ve:
-            return Response({'error': ve.message}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as e:
-            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        # Lưu chi tiết đơn hàng
+        for item in cart.items.all():
+            OrderDetail.objects.create(
+                order=order,
+                product=item.product,
+                quantity=item.quantity,
+                unit_price=item.product.price
+            )
+
+        cart.items.all().delete()
+        return Response(serializers.OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+
+class PaymentView(APIView):
+    def post(self, request):
+        form = forms.PaymentForm(request.POST)
+        if form.is_valid():
+            order_type = form.cleaned_data['order_type']
+            order_id = form.cleaned_data['order_id']
+            amount = form.cleaned_data['amount']
+            order_desc = form.cleaned_data['order_desc']
+            bank_code = form.cleaned_data.get('bank_code', '')
+            language = form.cleaned_data.get('language', 'vn')
+            ipaddr = utils.get_client_ip(request)
+
+            # Xây dựng URL Thanh Toán
+            vnp = vnpay(settings.VNPAY_HASH_SECRET_KEY)
+            vnp.add_param('vnp_Version', '2.1.0')
+            vnp.add_param('vnp_Command', 'pay')
+            vnp.add_param('vnp_TmnCode', settings.VNPAY_TMN_CODE)
+            vnp.add_param('vnp_Amount', amount * 100)
+            vnp.add_param('vnp_CurrCode', 'VND')
+            vnp.add_param('vnp_TxnRef', order_id)
+            vnp.add_param('vnp_OrderInfo', order_desc)
+            vnp.add_param('vnp_OrderType', order_type)
+            vnp.add_param('vnp_Locale', language)
+
+            if bank_code:
+                vnp.add_param('vnp_BankCode', bank_code)
+
+            vnp.add_param('vnp_CreateDate', datetime.now().strftime('%Y%m%d%H%M%S'))
+            vnp.add_param('vnp_IpAddr', ipaddr)
+            vnp.add_param('vnp_ReturnUrl', settings.VNPAY_RETURN_URL)
+
+            vnpay_payment_url = vnp.get_payment_url(settings.VNPAY_PAYMENT_URL)
+            print(vnpay_payment_url)
+
+            # Chuyển hướng đến VNPAY
+            return HttpResponseRedirect(vnpay_payment_url)
+
+        else:
+            print("Dữ liệu biểu mẫu không hợp lệ")
+            return render(request, "payment.html", {"title": "Thanh toán", "form": form})
+
+    def get(self, request):
+        form = forms.PaymentForm()
+        return render(request, "payment.html", {"title": "Thanh toán", "form": form})
+
+# views.py
+class PaymentIPNView(APIView):
+    def get(self, request):
+        inputData = request.GET
+        if inputData:
+            vnp = vnpay()
+            vnp.responseData = inputData.dict()
+            order_id = inputData.get('vnp_TxnRef')
+            amount = inputData.get('vnp_Amount')
+            order_desc = inputData.get('vnp_OrderInfo')
+            vnp_TransactionNo = inputData.get('vnp_TransactionNo')
+            vnp_ResponseCode = inputData.get('vnp_ResponseCode')
+            vnp_TmnCode = inputData.get('vnp_TmnCode')
+            vnp_PayDate = inputData.get('vnp_PayDate')
+            vnp_BankCode = inputData.get('vnp_BankCode')
+            vnp_CardType = inputData.get('vnp_CardType')
+
+            if vnp.validate_response(settings.VNPAY_HASH_SECRET_KEY):
+                # Kiểm tra và cập nhật trạng thái đơn hàng trong cơ sở dữ liệu
+                firstTimeUpdate = True  # Thay đổi theo logic của bạn
+                totalAmount = True  # Thay đổi theo logic của bạn
+
+                if totalAmount:
+                    if firstTimeUpdate:
+                        if vnp_ResponseCode == '00':
+                            print('Payment Success. Your code implement here')
+                        else:
+                            print('Payment Error. Your code implement here')
+
+                        # Trả về cho VNPAY: Merchant update success
+                        return Response({'RspCode': '00', 'Message': 'Confirm Success'}, status=status.HTTP_200_OK)
+                    else:
+                        # Đã cập nhật rồi
+                        return Response({'RspCode': '02', 'Message': 'Order Already Updated'}, status=status.HTTP_200_OK)
+                else:
+                    # Số tiền không hợp lệ
+                    return Response({'RspCode': '04', 'Message': 'Invalid amount'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                # Chữ ký không hợp lệ
+                return Response({'RspCode': '97', 'Message': 'Invalid Signature'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({'RspCode': '99', 'Message': 'Invalid request'}, status=status.HTTP_400_BAD_REQUEST)
+
+class PaymentReturnView(APIView):
+    def get(self, request):
+        inputData = request.GET
+        if inputData:
+            vnp = vnpay()
+            vnp.responseData = inputData.dict()
+            order_id = inputData.get('vnp_TxnRef')
+            amount = int(inputData.get('vnp_Amount')) / 100
+            order_desc = inputData.get('vnp_OrderInfo')
+            vnp_TransactionNo = inputData.get('vnp_TransactionNo')
+            vnp_ResponseCode = inputData.get('vnp_ResponseCode')
+            vnp_TmnCode = inputData.get('vnp_TmnCode')
+            vnp_PayDate = inputData.get('vnp_PayDate')
+            vnp_BankCode = inputData.get('vnp_BankCode')
+            vnp_CardType = inputData.get('vnp_CardType')
+
+            if vnp.validate_response(settings.VNPAY_HASH_SECRET_KEY):
+                if vnp_ResponseCode == "00":
+                    return Response({
+                        "title": "Kết quả thanh toán",
+                        "result": "Thành công",
+                        "order_id": order_id,
+                        "amount": amount,
+                        "order_desc": order_desc,
+                        "vnp_TransactionNo": vnp_TransactionNo,
+                        "vnp_ResponseCode": vnp_ResponseCode
+                    }, status=status.HTTP_200_OK)
+                else:
+                    return Response({
+                        "title": "Kết quả thanh toán",
+                        "result": "Lỗi",
+                        "order_id": order_id,
+                        "amount": amount,
+                        "order_desc": order_desc,
+                        "vnp_TransactionNo": vnp_TransactionNo,
+                        "vnp_ResponseCode": vnp_ResponseCode
+                    }, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({
+                    "title": "Kết quả thanh toán",
+                    "result": "Lỗi",
+                    "order_id": order_id,
+                    "amount": amount,
+                    "order_desc": order_desc,
+                    "vnp_TransactionNo": vnp_TransactionNo,
+                    "vnp_ResponseCode": vnp_ResponseCode,
+                    "msg": "Sai checksum"
+                }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({
+                "title": "Kết quả thanh toán",
+                "result": "Không có dữ liệu"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+

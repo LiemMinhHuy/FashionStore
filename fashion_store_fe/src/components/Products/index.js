@@ -4,6 +4,7 @@ import classNames from 'classnames/bind';
 import styles from './Products.module.scss';
 import * as ProductByCategoryId from '~/api/productByCateId'; // Giả định file api của bạn
 import { isCloseToBottom } from '~/utils/utils';
+import AddToCartButton from '../AddToCart';
 
 const cx = classNames.bind(styles);
 
@@ -67,7 +68,7 @@ function Products() {
         };
 
         loadProducts(); // Gọi hàm loadProducts
-    }, [page, hasMore]);
+    }, [categoryId, page, hasMore]);
 
     useEffect(() => {
         setPage(1);
@@ -110,22 +111,22 @@ function Products() {
             <div className={cx('product-list')}>
                 {products.length > 0 ? (
                     products.map((product) => (
-                        <Link to={`/products/${product.id}`} key={product.id}>
-                            <div className={cx('product-item')}>
+                        <div className={cx('product-item')} key={product.id}>
+                            <Link to={`/products/${product.id}`}>
                                 <img
-                                    src={product.image.replace('/media/https%3A', 'https://')}
+                                    src={product.image ? product.image.replace('/media/https%3A', 'https://') : ''}
                                     alt={product.name}
                                     className={cx('product-image')}
                                 />
-                                <div className={cx('product-text')}>
-                                    <h3>{product.name}</h3>
-                                    <p>Price: ${product.price}</p>
-                                    <div className={cx('btn-add-cart')}>
-                                        <p>Add to cart</p>
-                                    </div>
+                            </Link>
+                            <div className={cx('product-text')}>
+                                <h3>{product.name}</h3>
+                                <p>Price: {product.price} VND</p>
+                                <div className={cx('btn-add-cart')}>
+                                    <AddToCartButton productId={product.id} />
                                 </div>
                             </div>
-                        </Link>
+                        </div>
                     ))
                 ) : (
                     <p>No products found in this category.</p>

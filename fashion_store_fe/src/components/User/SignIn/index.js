@@ -5,7 +5,7 @@ import classNames from 'classnames/bind';
 import { GoogleIcon } from '~/Icons';
 import * as loginService from '~/api/loginService';
 import { useNavigate } from 'react-router-dom';
-import { MyDispatchContext } from '~/utils/context';
+import { MyDispatchContext } from '~/utils/Context/context';
 import { authApi } from '~/utils/request';
 
 const cx = classNames.bind(styles);
@@ -104,7 +104,7 @@ export default function SignIn() {
                 </button>
                 <div className={cx('signup')}>
                     <p>Don't have an account?</p>
-                    <Link to="/register">
+                    <Link to="/signup">
                         <span className={cx('link')}>Sign up</span>
                     </Link>
                 </div>

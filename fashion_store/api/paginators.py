@@ -11,3 +11,6 @@ class UserPaginator(pagination.PageNumberPagination):
 
 class Category(pagination.PageNumberPagination):
     page_size = 7
+
+class OrderPaginator(pagination.PageNumberPagination):
+    page_size = 5

@@ -52,7 +52,7 @@ export const put = async (path, data, option = {}) => {
 // Xử lý PATCH request
 export const patch = async (path, data, option = {}) => {
     try {
-        const response = await request.patch(path, data, option);
+        const response = await authApi().patch(path, data, option); // Sử dụng authApi
         return response.data;
     } catch (error) {
         console.error('PATCH request error:', error);

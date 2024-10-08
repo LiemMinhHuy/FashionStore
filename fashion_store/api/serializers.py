@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from api.models import Product, Category, User, Customer, Staff, Cart, CartItem, OrderDetail, Order
 from django.contrib.auth.models import Permission
 
@@ -10,9 +10,22 @@ class CategorySerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer()
+
     class Meta:
         model = Product
-        fields = '__all__'
+        fields = ['id', 'name', 'price', 'category', 'image', 'quantity']  # List all relevant fields
+
+class AuthenticatedProductDetailsSerializer(ProductSerializer):
+    liked = serializers.SerializerMethodField()
+
+    def get_liked(self, product):
+        # Check if the user has liked this product
+        return product.like_set.filter(user=self.context['request'].user, active=True).exists()
+
+    class Meta:
+        model = ProductSerializer.Meta.model
+        # Explicitly list the fields including 'liked'
+        fields = ProductSerializer.Meta.fields if ProductSerializer.Meta.fields != '__all__' else list(Product._meta.get_fields()) + ['liked']
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
@@ -20,19 +33,23 @@ class UserSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         data = validated_data.copy()
 
-        user = User(**data)
-        user.set_password(user.password)
-        user.save()
+        # Lấy và loại bỏ password từ validated_data
+        password = data.pop('password')
 
-        # Assign the correct permissions
-        if data.get('is_staff'):
-            staff_permission = Permission.objects.get(codename='staff')
-            user.user_permissions.add(staff_permission)
-        else:
+        # Tạo một Customer (kế thừa từ User)
+        customer = Customer(**data)
+        customer.set_password(password)  # Set the password
+        customer.is_staff = False  # Set is_staff to False
+        customer.save()  # Save the customer instance
+
+        try:
+            # Gán quyền 'customer' cho Customer
             customer_permission = Permission.objects.get(codename='customer')
-            user.user_permissions.add(customer_permission)
+            customer.user_permissions.add(customer_permission)
+        except Permission.DoesNotExist:
+            raise serializers.ValidationError({"permission": "Permission 'customer' không tồn tại."})
 
-        return user
+        return customer
 
     def validate_email(self, value):
         if User.objects.filter(email=value).exists():
@@ -40,10 +57,9 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def get_role(self, instance):
-        if instance.has_perm('api.staff'):
-            return "staff"
         if instance.has_perm('api.customer'):
             return "customer"
+        return "staff" if instance.is_staff else "regular"
 
     def to_representation(self, instance):
         rep = super().to_representation(instance)
@@ -82,7 +98,7 @@ class CartItemSerializer(serializers.ModelSerializer):
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
-    total_price = serializers.SerializerMethodField()
+    total_amount = serializers.SerializerMethodField()  # Đặt tên đúng ở đây
 
     class Meta:
         model = Cart
@@ -92,9 +108,14 @@ class CartSerializer(serializers.ModelSerializer):
         return obj.total_amount
 
 class OrderDetailSerializer(serializers.ModelSerializer):
+    product_name = serializers.SerializerMethodField()  # Thêm trường product_name
+
     class Meta:
         model = OrderDetail
-        fields = '__all__'
+        fields = ['id', 'product', 'product_name', 'quantity', 'unit_price', 'totalPrice', 'order', 'created_at', 'updated_at', 'is_active']
+
+    def get_product_name(self, obj):
+        return obj.product.name if obj.product else 'Unknown Product'
 
 class OrderSerializer(serializers.ModelSerializer):
     order_details = OrderDetailSerializer(many=True, read_only=True)

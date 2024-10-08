@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './ProductDetail.module.scss'; // Đường dẫn tới file SCSS của bạn
 import * as productDetail from '~/api/productDetail'; // Gọi API để lấy sản phẩm
+import AddToCartButton from '../AddToCart';
 
 const cx = classNames.bind(styles);
 
@@ -69,10 +70,11 @@ function ProductDetail() {
                     className={cx('product-image')}
                 />
                 <h2 className={cx('product-name')}>{product.name}</h2>
-                <p className={cx('product-price')}>Price: ${product.price}</p>
+                <p className={cx('product-price')}>Price: {product.price} VND</p>
                 <p className={cx('product-description')}>{product.description}</p>
                 <div className={cx('btn')}>
-                    <button className={cx('add-to-cart')}>Add to Cart</button>
+                    <AddToCartButton productId={product.id} />
+
                     <button className={cx('btn-buy')} onClick={handleBuyNow}>
                         Buy Now
                     </button>

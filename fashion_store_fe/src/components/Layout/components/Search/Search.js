@@ -10,6 +10,7 @@ import { SearchIcon } from '~/Icons';
 import { useDebounce } from '~/hooks';
 import styles from './Search.module.scss';
 import ProductItem from '~/components/ProductItem';
+import { Link } from 'react-router-dom';
 
 const cx = classNames.bind(styles);
 
@@ -79,7 +80,13 @@ function Search() {
                             <h4 className={cx('search-title')}>Products</h4>
                             {searchResult.length === 0 && !loading && <p>No products found</p>}
                             {searchResult.map((result) => (
-                                <ProductItem key={result.id} data={result} />
+                                <Link to={`/products/${result.id}`} className={cx('wrapper')}>
+                                    <div className={cx('info')}>
+                                        <h4 className={cx('name')}>
+                                            <span>{result.name}</span>
+                                        </h4>
+                                    </div>
+                                </Link>
                             ))}
                         </PopperWrapper>
                     </div>

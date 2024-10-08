@@ -108,13 +108,6 @@ function SideBar() {
             </div>
 
             <div
-                className={cx('category', { active: activeCategory === 'About us' })}
-                onClick={() => handleCategoryClick('About us')}
-            >
-                <p>About us</p>
-            </div>
-
-            <div
                 className={cx('category', { active: activeCategory === 'New' })}
                 onClick={() => handleCategoryClick('New')}
             >

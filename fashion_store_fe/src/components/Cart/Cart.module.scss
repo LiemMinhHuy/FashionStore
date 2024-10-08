@@ -1,0 +1,120 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5); /* Màu nền đen mờ */
+    z-index: 1000; /* Đưa lớp phủ lên trên */
+}
+.cart-container {
+    position: fixed;
+    z-index: 1000;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 50%; /* Chiếm 50% chiều rộng của trang */
+    background-color: #eee;
+    overflow-y: auto; /* Cuộn khi có nhiều sản phẩm */
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3); /* Thêm bóng đổ để phân biệt với phần còn lại của trang */
+}
+
+.cart-content {
+    padding: 24px;
+}
+
+.btn span {
+    font-size: 2rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.btn button {
+    margin-right: 4px;
+    cursor: pointer;
+}
+
+hr {
+    opacity: 0.25;
+    margin-bottom: 14px;
+}
+
+.title {
+    font-size: 1.6rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.text-price {
+    display: inline;
+}
+
+.cart-body {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 4px;
+    box-shadow: 1px 4px 12px 1px rgba(0, 0, 0, 0.12);
+    padding: 12px;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.img-fluid {
+    width: 65px;
+    margin-right: 4px;
+}
+
+.price {
+    display: flex;
+    align-items: center;
+    input {
+        width: 60px;
+        padding: 8px;
+        margin-right: 54px;
+        font-size: 1.3rem;
+        text-align: center;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        outline: none;
+        transition: border-color 0.3s ease;
+    }
+}
+
+.btn-trash svg {
+    color: #cecece;
+
+    &:hover {
+        color: #000;
+    }
+}
+
+.view-cart-details-btn {
+    width: 100%;
+    padding: 10px 20px;
+    background-color: #000;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 1.6rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+
+    &:hover {
+        background-color: #252525;
+    }
+
+    &:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.5);
+    }
+}

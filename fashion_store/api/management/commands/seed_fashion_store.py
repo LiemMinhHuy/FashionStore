@@ -142,7 +142,7 @@ class Command(BaseCommand):
         # Tạo dữ liệu mẫu cho Like
         seeder.add_entity(Like, 200, {
             "user": lambda x: random.choice(customers),
-            "news": lambda x: random.choice(News.objects.all()),
+            "product": lambda x: random.choice(products),  # Change this line to use 'product' instead of 'news'
         })
 
         inserted_pks.update(seeder.execute())
