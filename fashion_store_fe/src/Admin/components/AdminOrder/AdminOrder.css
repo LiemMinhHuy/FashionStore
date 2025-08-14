@@ -1,0 +1,26 @@
+.admin-order-container {
+    margin-top: 74px;
+    width: 100%;
+}
+
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin-bottom: 20px;
+}
+
+.orders-table th,
+.orders-table td {
+    padding: 12px;
+    text-align: left;
+}
+
+.orders-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.orders-table tr:nth-child(even) {
+    background-color: #f8f8f8;
+}

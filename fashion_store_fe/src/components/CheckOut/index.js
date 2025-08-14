@@ -1,143 +1,319 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useContext, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '~/utils/Context/cartContext';
 import styles from './CheckOut.module.scss';
 import classNames from 'classnames/bind';
 import { authApi } from '~/utils/request';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import FormCheckOut from '../FormCheckOut';
+import { PlusIcon, MinusIcon } from '@heroicons/react/24/solid';
 
 const cx = classNames.bind(styles);
 
 const CheckOut = () => {
-    const { cartItems, clearCart } = useContext(CartContext);
-    const [shippingAddress, setShippingAddress] = useState('');
-    const [paymentMethod, setPaymentMethod] = useState('Cash');
+    const {cartItems, clearCart } = useContext(CartContext);
+    const [shippingAddress, setShippingAddress] = useState({});
+    const [showPaymentModal, setShowPaymentModal] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState('COD');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
+    const [showNote, setShowNote] = useState(false);
+    const [note, setNote] = useState('');
 
-    const total = cartItems.reduce((sum, item) => {
-        const price = parseFloat(item.product.price);
-        return sum + item.quantity * (isNaN(price) ? 0 : price);
-    }, 0);
+    const exchangeRate = 23000;
+    const total = useMemo(() => {
+        return cartItems.reduce((sum, item) => {
+            const price = parseFloat(item.product.price);
+            return sum + item.quantity * (isNaN(price) ? 0 : price);
+        }, 0);
+    }, [cartItems]);
 
     const handleCheckOut = async () => {
-        if (!shippingAddress) {
-            toast.error('Vui lòng nhập địa chỉ giao hàng');
-            return;
-        }
+        console.log('Clicked');
+        console.log('Shipping address:', shippingAddress);
+        console.log('Payment method:', paymentMethod);
 
         const payload = {
             shipping_address: shippingAddress,
             payment_method: paymentMethod,
-            total_amount: total, // Thêm tổng số tiền vào payload
         };
 
         try {
             setLoading(true);
             const response = await authApi(localStorage.getItem('access_token')).post('/orders/checkout/', payload);
-
-            if (response.status === 201 && response.data) {
-                clearCart();
-                navigate('/order', { state: { orderData: response.data } });
+            console.log('Checkout response:', response);
+            if ((response.status === 200 || response.status === 201) && response.data) {
+                if (paymentMethod === 'VNPay' && response.data.payment_url) {
+                    // Với VNPay, chuyển hướng đến trang thanh toán
+                    window.location.href = response.data.payment_url;
+                    // Không clear cart ở đây, sẽ clear sau khi thanh toán thành công
+                } else if (paymentMethod === 'PayPal' && response.data.payment_url) {
+                    // Với PayPal, chuyển hướng đến trang thanh toán
+                    window.location.href = response.data.payment_url;
+                    // Không clear cart ở đây, sẽ clear sau khi thanh toán thành công
+                } else {
+                    // Với các phương thức thanh toán khác (Cash, ZaloPay, Momo), clear cart ngay lập tức
+                    clearCart();
+                    navigate('/payment-success', { state: { orderData: response.data } });
+                }
             } else {
-                toast.error('Thanh toán thất bại, vui lòng thử lại');
+                toast.error('Checkout failed, please try again');
             }
         } catch (error) {
             console.error('Checkout error:', error);
-            toast.error('Đã xảy ra lỗi, vui lòng thử lại sau');
+            const errorMessage = error.response?.data?.message || 'An error occurred, please try again later';
+            toast.error(errorMessage);
+            navigate('/payment-failed', { 
+                state: { 
+                    errorMessage: errorMessage,
+                    orderData: { total_amount: total }
+                } 
+            });
         } finally {
+            
             setLoading(false);
         }
     };
 
-    const handleVNPayCheckOut = async () => {
-        const payload = {
-            shipping_address: shippingAddress,
-            payment_method: paymentMethod,
-            total_amount: total, // Thêm tổng số tiền vào payload
-        };
+    const handlePayPalSuccess = async (data, actions) => {
+        console.log('PayPal data:', data); // Log PayPal data
+        if (data && data.id) {
+            try {
+                const payload = {
+                    shipping_address: shippingAddress, // Shipping address
+                    payment_method: 'PayPal', // Payment method
+                    order_id: data.id, // PayPal transaction ID
+                };
 
-        try {
-            setLoading(true);
-            const response = await authApi(localStorage.getItem('access_token')).post('/orders/checkout/', payload);
+                const response = await authApi(localStorage.getItem('access_token')).post('/orders/checkout/', payload);
 
-            if (response.data.payment_url) {
-                // Chuyển hướng đến URL thanh toán VNPay
-                window.location.href = response.data.payment_url;
-            } else {
-                toast.error('Lỗi khi tạo thanh toán VNPay');
+                if (response.status === 200) {
+                    clearCart(); // Clear cart only on successful payment
+                    toast.success('PayPal payment successful!');
+                    navigate('/payment-success', { state: { orderData: response.data } });
+                } else {
+                    toast.error('An error occurred while confirming payment.');
+                }
+            } catch (error) {
+                console.error('Error processing PayPal payment:', error);
+                toast.error('Error processing PayPal payment');
             }
-        } catch (error) {
-            console.error('Lỗi khi gọi API thanh toán VNPay:', error);
-            toast.error('Lỗi khi gọi API thanh toán VNPay');
-        } finally {
-            setLoading(false);
+        } else {
+            toast.error('Invalid payment information.');
         }
     };
+
+    const paymentMethods = [
+        {
+            value: 'Cash',
+            label: 'Cash on delivery (COD)',
+            img: null,
+        },
+        {
+            value: 'ZaloPay',
+            label: 'ZaloPay',
+            img: 'https://cdn.brandfetch.io/id_T-oXJkN/w/1624/h/1624/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1751816051661',
+        },
+        {
+            value: 'VNPay',
+            label: 'VNPay',
+            img: 'https://vinadesign.vn/uploads/images/2023/05/vnpay-logo-vinadesign-25-12-57-55.jpg',
+        },
+        {
+            value: 'Momo',
+            label: 'Momo',
+            img: 'https://cdn.brandfetch.io/idn4xaCzTm/w/1666/h/1666/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1734358527203',
+        },
+        {
+            value: 'PayPal',
+            label: 'PayPal',
+            img: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Paypal_2014_logo.png',
+        },
+    ];
 
     return (
         <div className={cx('checkout-container')}>
-            <ToastContainer />
-            <h2 className={cx('title')}>Checkout</h2>
-            <div className={cx('checkout-wrapper')}>
-                <div className={cx('cart-items')}>
-                    {cartItems.map((item) => (
-                        <div key={item.id} className={cx('cart-item')}>
-                            <img
-                                src={item.product.image.replace('/media/https%3A', 'https:/')}
-                                className={cx('cart-image')}
-                                alt={item.product.name}
-                            />
-                            <div className={cx('item-info')}>
-                                <h4>{item.product.name}</h4>
-                                <div className={cx('flex')}>
-                                    <p>{parseFloat(item.product.price).toFixed(2)} VND</p>
-                                    <p>{item.quantity}</p>
+            <div className={cx('header-checkout')}>
+                <div className={cx('header-checkout-item')}>
+                    <span className={cx('breadcrumb-item')}>Home</span>
+                    <span className={cx('breadcrumb-item')}>/</span>
+                    <span className={cx('breadcrumb-item-checkout')}>Checkout</span>
+                </div>
+            </div>
+            <div className={cx('checkout-grid')}>
+                <div className={cx('left-col')}>
+                    <div className={cx('box', 'shipping-info')}>
+                        <h3 className={cx('title')}>Delivery Information</h3>
+                        <div className={cx('form-group')}>
+                            <FormCheckOut onAddressChange={setShippingAddress} />
+                        </div>
+                    </div>
+                </div>
+                <div className={cx('center-col')}>
+                    <div className={cx('box', 'payment-method')}>
+                        <div className={cx('payment-method-header')}>
+                            <h3 className={cx('title')}>Payment Method</h3>
+                            <button
+                                type="button"
+                                className={cx('change-btn')}
+                                onClick={() => setShowPaymentModal(true)}
+                            >
+                                Change
+                            </button>
+                        </div>
+                        {showPaymentModal && (
+                            <div className={cx('modal-overlay')}>
+                                <div className={cx('modal')}>
+                                    <button className={cx('modal-close')} onClick={() => setShowPaymentModal(false)}>
+                                        &times;
+                                    </button>
+                                    <h3 className={cx('title')}>Payment Method</h3>
+                                    <div className={cx('payment-options')}>
+                                        {paymentMethods.map((method) => (
+                                            <label className={cx('payment-option')} key={method.value}>
+                                                <div className={cx('payment-option-item')}>
+                                                    <input
+                                                        type="radio"
+                                                        name="payment"
+                                                        value={method.value}
+                                                        checked={paymentMethod === method.value}
+                                                        onChange={() => setPaymentMethod(method.value)}
+                                                    />
+                                                    <span>{method.label}</span>
+                                                </div>
+                                                {method.img && (
+                                                    <img
+                                                        src={method.img}
+                                                        alt={method.label}
+                                                        className={cx('pay-logo')}
+                                                    />
+                                                )}
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <button className={cx('modal-confirm')} onClick={() => setShowPaymentModal(false)}>
+                                        Confirm
+                                    </button>
                                 </div>
                             </div>
+                        )}
+                        <div className={cx('payment-method-description')}>
+                            {(() => {
+                                const selected = paymentMethods.find((m) => m.value === paymentMethod);
+                                return (
+                                    selected && (
+                                        <div className={cx('payment-method-description-item')}>
+                                            <span>{selected.label}</span>
+                                            {selected.img && (
+                                                <img
+                                                    src={selected.img}
+                                                    alt={selected.label}
+                                                    className={cx('pay-logo')}
+                                                />
+                                            )}
+                                        </div>
+                                    )
+                                );
+                            })()}
                         </div>
-                    ))}
-                    <p className={cx('total')}>Total: {total.toFixed(2)} VND</p>
+                    </div>
+                    <div className={cx('box', 'voucher')}>
+                        <h3 className={cx('title')}>Voucher/coupon</h3>
+                        <input type="text" className={cx('input')} placeholder="Enter voucher code" />
+                    </div>
+                    <div className={cx('box', 'note-order')}>
+                        <div className={cx('note-order-header')}>
+                            <h3 className={cx('title')}>Order notes</h3>
+                            <label className={cx('checkbox-label')}>
+                                <input
+                                    type="checkbox"
+                                    checked={showNote}
+                                    onChange={() => setShowNote((prev) => !prev)}
+                                    className={cx('checkbox-input')}
+                                />
+                                <span
+                                    style={{
+                                        background: showNote ? '#219a6f' : '#ccc',
+                                    }}
+                                    className={cx('checkbox')}
+                                >
+                                    <span
+                                        style={{
+                                            left: showNote ? 20 : 2,
+                                        }}
+                                        className={cx('checkbox-icon')}
+                                    />
+                                </span>
+                            </label>
+                        </div>
+                        {showNote && (
+                            <textarea
+                                className={cx('input-note')}
+                                placeholder="Enter your request here"
+                                value={note}
+                                onChange={(e) => setNote(e.target.value)}
+                            />
+                        )}
+                    </div>
                 </div>
+                <div className={cx('right-col')}>
+                    <div className={cx('box', 'order-summary')}>
+                        <h3 className={cx('title')}>Order Summary</h3>
+                        <div className={cx('cart-items')}>
+                            {cartItems.map((item) => (
+                                <div key={item.id} className={cx('cart-item')}>
+                                    <div className={cx('cart-image-container')}>
+                                        <img
+                                            src={item.product.image.replace('/media/https%3A', 'https://')}
+                                            className={cx('cart-image')}
+                                            alt={item.product.name}
+                                        />
+                                    </div>
+                                    <div className={cx('item-info')}>
+                                        <h4 className={cx('item-name')}>{item.product.name}</h4>
+                                        <div className={cx('quantity-button-container')}>
+                                            <MinusIcon className={cx('quantity-icon')} />
+                                            <div className={cx('quantity-input')}>{item.quantity}</div>
+                                            <PlusIcon className={cx('quantity-icon')} />
+                                        </div>
+                                        <span className={cx('item-price')}>{item.product.price}đ</span>
+                                    </div>
+                                </div>
+                            ))}
 
-                <div className={cx('checkout-text')}>
-                    <div className={cx('form-group')}>
-                        <label>Shipping Address</label>
-                        <input
-                            type="text"
-                            value={shippingAddress}
-                            onChange={(e) => setShippingAddress(e.target.value)}
-                            className={cx('input')}
-                            placeholder="Enter your shipping address"
-                        />
-                    </div>
+                            <div className={cx('item-total-container')}>
+                                <span className={cx('item-total-title')}>Order Total</span>
+                                <span className={cx('item-total')}>{total.toFixed(3)}đ</span>
+                            </div>
 
-                    <div className={cx('form-group')}>
-                        <label>Payment Method</label>
-                        <div className={cx('payment-buttons')}>
-                            <button
-                                onClick={() => setPaymentMethod('Cash')}
-                                className={cx('payment-btn', { active: paymentMethod === 'Cash' })}
-                            >
-                                Cash
-                            </button>
-                            <button
-                                onClick={() => setPaymentMethod('VNPay')}
-                                className={cx('payment-btn', { active: paymentMethod === 'VNPay' })}
-                            >
-                                VNPay
-                            </button>
+                            <div className={cx('item-total-container')}>
+                                <span className={cx('item-total-title')}>Shipping Fee</span>
+                                <span className={cx('item-total')}>10000đ</span>
+                            </div>
+
+                            <div className={cx('item-total-container')}>
+                                <span className={cx('item-total-title')}>Discount</span>
+                                <span className={cx('item-total')}>-10000đ</span>
+                            </div>
+
+                            <span className={cx('line')}></span>
+
+                            <div className={cx('item-total-container')}>
+                                <span className={cx('item-total-title')}>Total</span>
+                                <span className={cx('item-total')}>{total.toFixed(3)}đ</span>
+                            </div>
+
+                            <div className={cx('item-total-container')}>
+                                <span className={cx('item-total-title')}>Estimated Reward Points</span>
+                                <span className={cx('item-total')}>0</span>
+                            </div>
                         </div>
-                    </div>
 
-                    <button
-                        onClick={paymentMethod === 'VNPay' ? handleVNPayCheckOut : handleCheckOut}
-                        className={cx('checkout-btn')}
-                        disabled={loading}
-                    >
-                        {loading ? 'Processing...' : 'Place Order'}
-                    </button>
+                        <button onClick={handleCheckOut} className={cx('checkout-btn')} disabled={loading}>
+                            {loading ? 'Processing...' : 'Order'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

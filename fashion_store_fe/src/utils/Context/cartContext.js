@@ -32,9 +32,12 @@ export const CartProvider = ({ children }) => {
         }
     }, [currentUser]);
 
-    const addToCart = async (items) => {
+    const addToCart = async (items, quantity) => {
         try {
-            const response = await authApi(localStorage.getItem('access_token')).post('/carts/add-cart/', { items });
+            const response = await authApi(localStorage.getItem('access_token')).post('/carts/add-cart/', {
+                items,
+                quantity,
+            });
 
             // Gọi lại API để lấy thông tin chi tiết của giỏ hàng sau khi thêm sản phẩm
             const updatedCart = await authApi(localStorage.getItem('access_token')).get('/carts/');
@@ -83,8 +86,14 @@ export const CartProvider = ({ children }) => {
         }
     };
 
-    const clearCart = () => {
-        setCartItems([]); // Hoặc phương thức khác để xóa giỏ hàng
+    const clearCart = async () => {
+        try {
+            await authApi(localStorage.getItem('access_token')).delete('/carts/clear/');
+            setCartItems([]);
+        } catch (err) {
+            console.error('Error clearing cart:', err);
+            throw err;
+        }
     };
 
     return (

@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useState, useEffect, useContext } from 'react';
+import { useParams } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './ProductDetail.module.scss'; // Đường dẫn tới file SCSS của bạn
 import * as productDetail from '~/api/productDetail'; // Gọi API để lấy sản phẩm
-import AddToCartButton from '../AddToCart';
+import { CartContext } from '~/utils/Context/cartContext';
+import { MyUserContext } from '~/utils/Context/context';
+import Alert from '../Alert';
 
 const cx = classNames.bind(styles);
 
@@ -12,6 +14,33 @@ function ProductDetail() {
     const [product, setProduct] = useState(null); // State để lưu thông tin sản phẩm
     const [loading, setLoading] = useState(true); // State để kiểm soát loading
     const [error, setError] = useState(null); // State để lưu lỗi nếu có
+    const [success, setSuccess] = useState(null);
+    const currentUser = useContext(MyUserContext);
+    const { addToCart } = useContext(CartContext); // Sử dụng addToCart từ CartContext
+    const [quantity, setQuantity] = useState(1);
+
+    const handleQuantityChange = (e) => {
+        const value = parseInt(e.target.value);
+        if (value >= 1 && value <= 100) {
+            setQuantity(value);
+        }
+    };
+
+    const handleAddToCart = async () => {
+        if (!currentUser) {
+            setError('Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.');
+            return;
+        }
+        try {
+            await addToCart([{ product_id: productId, quantity: quantity }]);
+            setSuccess('Sản phẩm đã được thêm vào giỏ hàng.');
+            setError(null);
+        } catch (err) {
+            console.log('Lỗi chi tiết:', err.response?.data);
+            setError(err.response?.data.detail || 'Có lỗi xảy ra khi thêm vào giỏ hàng.');
+            setSuccess(null);
+        }
+    };
 
     // Fetch data khi component mount
     useEffect(() => {
@@ -52,32 +81,36 @@ function ProductDetail() {
         return <h2>Product not found.</h2>; // Thông báo nếu không có sản phẩm
     }
 
-    // Hàm xử lý sự kiện mua hàng
-    const handleBuyNow = () => {
-        // Thêm logic để xử lý mua hàng, ví dụ điều hướng đến trang thanh toán
-        console.log('Buy Now clicked for product:', productId);
-        // Redirect to the payment page or show a payment modal
-    };
-
     // Hiển thị thông tin sản phẩm
     return (
         <div className={cx('product-detail')}>
-            <Link to="/products">Back to Products</Link>
-            <div className={cx('product-info')}>
-                <img
-                    src={product.image ? product.image.replace('/media/https%3A', 'https://') : ''} // Xử lý đường dẫn ảnh
-                    alt={product.name}
-                    className={cx('product-image')}
-                />
-                <h2 className={cx('product-name')}>{product.name}</h2>
-                <p className={cx('product-price')}>Price: {product.price} VND</p>
-                <p className={cx('product-description')}>{product.description}</p>
-                <div className={cx('btn')}>
-                    <AddToCartButton productId={product.id} />
-
-                    <button className={cx('btn-buy')} onClick={handleBuyNow}>
-                        Buy Now
+            <div className={cx('breadcrumb')}>
+                <span className={cx('breadcrumb-item')}>Shop</span>
+                <span className={cx('breadcrumb-item')}>/</span>
+                <span className={cx('breadcrumb-item')}>{product.category.name}</span>
+                <span className={cx('breadcrumb-item')}>/</span>
+                <span className={cx('breadcrumb-item')}>{product.name}</span>
+            </div>
+            <div className={cx('product-detail-container')}>
+                <div className={cx('product-image-container')}>
+                    <img
+                        src={product.image ? product.image.replace('/media/https%3A', 'https://') : ''} // Xử lý đường dẫn ảnh
+                        alt={product.name}
+                    />
+                </div>
+                <div className={cx('product-info-container')}>
+                    <h2 className={cx('product-name')}>{product.name}</h2>
+                    <p className={cx('product-price')}>$ {product.price} USD</p>
+                    <p className={cx('product-description')}>{product.description}</p>
+                    <div className={cx('product-quantity')}>
+                        <span className={cx('product-quantity-text')}>Quantity:</span>
+                        <input type="number" min="1" max="100" value={quantity} onChange={handleQuantityChange} />
+                    </div>
+                    <button className={cx('btn-add-to-cart')} onClick={handleAddToCart}>
+                        Add to Cart
                     </button>
+                    {success && <Alert message={success} type="success" onClose={() => setSuccess(null)} autoClose={true} autoCloseTime={2000} />}
+                    {error && <Alert message={error} type="error" />}
                 </div>
             </div>
         </div>

@@ -1,0 +1,26 @@
+.admin-product-container {
+    margin-top: 74px;
+    width: 100%;
+}
+
+.products-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin-bottom: 20px;
+}
+
+.products-table th,
+.products-table td {
+    padding: 12px;
+    text-align: left;
+}
+
+.products-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.products-table tr:nth-child(even) {
+    background-color: #f8f8f8;
+}

@@ -1,0 +1,505 @@
+.address-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eee;
+}
+
+.title {
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+}
+
+.btn-add {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        background-color: #0056b3;
+        transform: translateY(-1px);
+    }
+    
+    .icon {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+// Form Overlay
+.form-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 20px;
+}
+
+.form-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 30px;
+    border-bottom: 1px solid #eee;
+    
+    h2 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #333;
+        margin: 0;
+    }
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 2.4rem;
+    color: #666;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        background-color: #f0f0f0;
+        color: #333;
+    }
+}
+
+.address-form {
+    padding: 30px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.form-input, .form-textarea {
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1.4rem;
+    transition: border-color 0.3s ease;
+    
+    &:focus {
+        outline: none;
+        border-color: #007bff;
+    }
+}
+
+.form-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.form-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 20px 0;
+}
+
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.4rem;
+    color: #333;
+    cursor: pointer;
+}
+
+.checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: #007bff;
+}
+
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.btn-save, .btn-cancel {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 120px;
+}
+
+.btn-save {
+    background-color: #28a745;
+    color: white;
+    
+    &:hover {
+        background-color: #1e7e34;
+    }
+}
+
+.btn-cancel {
+    background-color: #6c757d;
+    color: white;
+    
+    &:hover {
+        background-color: #545b62;
+    }
+}
+
+// Address Cards Grid
+.addresses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    
+    @media (max-width: 768px) {
+        grid-template-columns: 1fr;
+    }
+}
+
+.address-card {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 20px;
+    position: relative;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        border-color: #007bff;
+        box-shadow: 0 4px 20px rgba(0, 123, 255, 0.1);
+        transform: translateY(-2px);
+    }
+    
+    &.default {
+        border-color: #28a745;
+        background: linear-gradient(135deg, #f8fff9 0%, #ffffff 100%);
+    }
+}
+
+.default-badge {
+    position: absolute;
+    top: -10px;
+    right: 20px;
+    background: #28a745;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.address-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.address-name {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #333;
+    margin: 0;
+    flex: 1;
+}
+
+.address-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-edit, .btn-delete {
+    background: none;
+    border: none;
+    padding: 6px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    .icon {
+        width: 18px;
+        height: 18px;
+    }
+}
+
+.btn-edit {
+    color: #007bff;
+    
+    &:hover {
+        background-color: #e3f2fd;
+    }
+}
+
+.btn-delete {
+    color: #dc3545;
+    
+    &:hover {
+        background-color: #fde8e8;
+    }
+}
+
+.address-content {
+    margin-bottom: 20px;
+}
+
+.address-phone {
+    font-size: 1.4rem;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.address-text {
+    font-size: 1.4rem;
+    color: #333;
+    line-height: 1.5;
+    margin-bottom: 8px;
+}
+
+.address-note {
+    font-size: 1.3rem;
+    color: #666;
+    font-style: italic;
+    margin: 0;
+}
+
+.address-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+.address-types {
+    display: flex;
+    gap: 8px;
+}
+
+.type-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    
+    &.shipping {
+        background-color: #e3f2fd;
+        color: #1976d2;
+    }
+    
+    &.billing {
+        background-color: #fff3e0;
+        color: #f57c00;
+    }
+}
+
+.btn-set-default {
+    background: none;
+    border: 1px solid #007bff;
+    color: #007bff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        background-color: #007bff;
+        color: white;
+    }
+}
+
+// Empty State
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    grid-column: 1 / -1;
+}
+
+.empty-icon {
+    width: 80px;
+    height: 80px;
+    color: #ccc;
+    margin-bottom: 20px;
+}
+
+.empty-state h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.empty-state p {
+    font-size: 1.4rem;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.btn-add-empty {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        background-color: #0056b3;
+        transform: translateY(-1px);
+    }
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;
+    font-size: 1.6rem;
+    color: #666;
+}
+
+.error-state {
+    text-align: center;
+    padding: 60px 20px;
+    grid-column: 1 / -1;
+}
+
+.error-state h3 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #dc3545;
+    margin-bottom: 10px;
+}
+
+.error-state p {
+    font-size: 1.4rem;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.btn-retry {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+        background-color: #c82333;
+        transform: translateY(-1px);
+    }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+    .address-container {
+        padding: 15px;
+    }
+    
+    .header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .btn-add {
+        justify-content: center;
+    }
+    
+    .form-card {
+        margin: 10px;
+        max-height: 95vh;
+    }
+    
+    .address-form {
+        padding: 20px;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .address-footer {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .btn-set-default {
+        width: 100%;
+    }
+}

@@ -46,7 +46,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 ROOT_URLCONF = 'fashion_store.urls'
 
 TEMPLATES = [
@@ -183,9 +182,14 @@ OAUTH2_PROVIDER = {
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
 
-
 # VNPay configuration
 VNPAY_TMN_CODE = 'GMD8US5K'
 VNPAY_HASH_SECRET_KEY = 'MFHLIN0QCOVF9ZW1UVB0WI7NVTZ0DYH5'
 VNPAY_PAYMENT_URL = 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'
 VNPAY_RETURN_URL = 'http://127.0.0.1:8000/vnpay/payment_return/'  # Thay thế bằng URL của bạn
+
+
+# settings.py
+PAYPAL_CLIENT_ID = 'ASYyhk4BYq1XciVddBhfKgs1kPh3xOIyNWvjyTOdKPU-kdP47bu4G3OnF-3H4aMgnqRjNm_A2fr6kspW'
+PAYPAL_CLIENT_SECRET = 'EOoskqyFtjQjjiUnBo4kAMk_Xl9G7jVqaHsnoDwJzJ0SQze4SGi0kd96toD-8mt9ssZjnJdMxn7hVym1'
+PAYPAL_MODE = 'sandbox' # Or 'live' for production

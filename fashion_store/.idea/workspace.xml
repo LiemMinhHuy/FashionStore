@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="79a35df5-9c98-42d5-923a-150e7852b21e" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/api/templates/Admin/base.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/api/templates/Admin/category_stats.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/api/templates/Admin/stats.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/api/templates/payment_cancel.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/api/templates/payment_failure.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/api/templates/payment_success.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/fashion_store.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/fashion_store.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/5" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/management/commands/seed_fashion_store.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/management/commands/seed_fashion_store.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/paginators.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/paginators.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/serializers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/api/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/fashion_store/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/fashion_store/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/public/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/public/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/App.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/App.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/Icons/Icons.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/Icons/index.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/api/productByCateId.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/api/productByCateId.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/AddToCart/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/AddToCart/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/CartDetails/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/CartDetails/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/CheckOut/CheckOut.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/CheckOut/CheckOut.module.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/CheckOut/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/CheckOut/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/GlobalStyles/GlobalStyles.scss" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/GlobalStyles/GlobalStyles.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Layout/DefaultLayout/DefaultLayout.module.scss" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Layout/DefaultLayout/SideBar/SideBar.module.scss" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Layout/DefaultLayout/SideBar/index.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Layout/DefaultLayout/index.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Layout/HeaderOnly/index.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Layout/components/Header/Header.module.scss" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Layout/components/Header/index.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Layout/components/Search/Search.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Layout/components/Search/Search.module.scss" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Layout/components/Search/index.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Layout/index.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Order/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/Order/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/ProductDetail/ProductDetail.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/ProductDetail/ProductDetail.module.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/ProductDetail/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/ProductDetail/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Products/Products.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/Products/Products.module.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/Products/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/Products/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/User/SignIn/SignIn.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/User/SignIn/SignIn.module.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/components/User/SignIn/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/components/User/SignIn/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/pages/HomePage/HomePage.module.scss" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/pages/HomePage/HomePage.module.scss" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/pages/HomePage/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/pages/HomePage/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/routes/index.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/routes/index.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/utils/Context/cartContext.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/utils/Context/cartContext.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/src/utils/utils.js" beforeDir="false" afterPath="$PROJECT_DIR$/../fashion_store_fe/src/utils/utils.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../fashion_store_fe/yarn.lock" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "customColor": "",
+  "associatedIndex": 2
+}]]></component>
+  <component name="ProjectId" id="2zupJB9b7Rd4aD3yz7DrqqI4Jmv" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-python-sdk-babbdf50b680-746f403e7f0c-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-241.15989.155" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="79a35df5-9c98-42d5-923a-150e7852b21e" name="Changes" comment="" />
+      <created>1752590746073</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1752590746073</updated>
+    </task>
+    <servers />
+  </component>
+</project>

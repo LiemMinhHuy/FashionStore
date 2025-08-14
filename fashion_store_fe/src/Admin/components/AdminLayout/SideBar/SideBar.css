@@ -1,0 +1,68 @@
+.sidebar {
+    background-color: #222;
+    color: #fff;
+    width: 250px;
+    padding: 20px;
+    box-shadow: 2px 0px 10px rgba(0, 0, 0, 0.2);
+    margin-top: 60px;
+    min-height: 100vh;
+}
+
+.sidebar-header {
+    margin-bottom: 20px;
+}
+
+.sidebar-menu {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar-item {
+    padding: 10px 0;
+}
+
+.sidebar-item.active a {
+    background-color: #333;
+}
+
+.sidebar-item a {
+    display: block;
+    padding: 10px 15px;
+    text-decoration: none;
+    color: #fff;
+}
+
+.dropdown-toggle {
+    position: relative;
+    cursor: pointer;
+}
+
+.dropdown-toggle:hover {
+    background-color: #333;
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #333;
+    width: 100%;
+    padding: 0;
+    list-style: none;
+}
+
+.dropdown-menu .sidebar-item a {
+    padding: 10px 25px;
+    margin: 0;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+/* Add icons using Font Awesome or any icon library */
+.fas {
+    margin-right: 10px;
+}
+

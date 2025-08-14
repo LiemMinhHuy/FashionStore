@@ -85,7 +85,8 @@ class Command(BaseCommand):
                     price=round(random.uniform(10.0, 500.0), 2),
                     category=category,
                     image="https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-5",
-                    quantity=30  # Đặt số lượng cho mỗi sản phẩm là 30
+                    quantity=30,  # Đặt số lượng cho mỗi sản phẩm là 30
+                    description=seeder.faker.sentence(nb_words=15)  # Thêm mô tả ngắn cho sản phẩm
                 )
                 product_list.append(product)
 

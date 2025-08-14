@@ -1,0 +1,23 @@
+.breadcrumb {
+    padding: 1.8rem;
+    border: solid 1px #e4e4e7;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+
+    .breadcrumb-separator {
+        margin-top: 2px;
+        font-size: 1.4rem;
+        color: #999;
+    }
+    .breadcrumb-link {
+        a {
+            font-size: 1.6rem;
+            color: #999;
+
+            &:hover {
+                color: #000;
+            }
+        }
+    }
+}

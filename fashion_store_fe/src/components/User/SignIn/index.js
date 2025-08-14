@@ -2,7 +2,6 @@ import React, { useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
 import styles from './SignIn.module.scss';
 import classNames from 'classnames/bind';
-import { GoogleIcon } from '~/Icons';
 import * as loginService from '~/api/loginService';
 import { useNavigate } from 'react-router-dom';
 import { MyDispatchContext } from '~/utils/Context/context';
@@ -41,8 +40,15 @@ export default function SignIn() {
                     payload: user.data,
                 });
 
-                // Điều hướng về trang chủ
-                navigate('/');
+                if (user.data.role === 'customer') {
+                    navigate('/');
+                } else if (user.data.role === 'regular') {
+                    navigate('/admin/dashboard');
+                } else {
+                    // Handle case where role is unknown (or invalid)
+                    console.error('Unknown user role', user.data.role);
+                    // It's recommended to implement a safe redirect or alert to the user
+                }
             }, 100);
 
             // Xóa lỗi nếu thành công
@@ -110,7 +116,6 @@ export default function SignIn() {
                 </div>
                 <div className={cx('divider')}>or</div>
                 <button className={cx('btn-google')} type="button">
-                    <GoogleIcon />
                     <p>Sign in with Google</p>
                 </button>
             </form>

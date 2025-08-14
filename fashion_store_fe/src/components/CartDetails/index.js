@@ -37,7 +37,7 @@ const CartDetail = () => {
     };
 
     const handlecheckout = () => {
-        navigate('/checkout'); // Điều hướng đến trang chi tiết giỏ hàng
+        navigate('/checkout');
     };
 
     return (

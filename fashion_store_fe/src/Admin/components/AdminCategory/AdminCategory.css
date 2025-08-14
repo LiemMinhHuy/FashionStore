@@ -1,0 +1,26 @@
+.admin-category-container {
+    margin-top: 74px;
+    width: 100%;
+}
+
+.categories-table {
+    width: 100%;
+    border-collapse: collapse;
+    border-spacing: 0;
+    margin-bottom: 20px;
+}
+
+.categories-table th,
+.categories-table td {
+    padding: 12px;
+    text-align: left;
+}
+
+.categories-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+}
+
+.categories-table tr:nth-child(even) {
+    background-color: #f8f8f8;
+}

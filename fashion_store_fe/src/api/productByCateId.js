@@ -1,8 +1,16 @@
 import * as request from '../utils/request';
 
-export const product = async (categoryId, page = 1) => {
+// Include sortOption as parameter:
+export const product = async (categoryId, page = 1, sortOption = 'latest') => {
     try {
-        const res = await request.get(`products/category/${categoryId}/?page=${page}`);
+        let url = `products/category/${categoryId}/?page=${page}`;
+
+        //  Add sortOption to URL Query Parameter:
+        if (sortOption !== 'latest') {
+            url += `&sortOption=${sortOption}`;
+        }
+
+        const res = await request.get(url);
 
         // Kiểm tra định dạng phản hồi
         if (!res || !res.results) {

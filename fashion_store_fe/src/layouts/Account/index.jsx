@@ -1,0 +1,148 @@
+import Header from '~/layouts/components/Header';
+import styles from './Account.module.scss';
+import classNames from 'classnames/bind';
+import Breadcrumb from '~/components/Breadcrumb';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { authApi } from '~/utils/request';
+import {
+    UserCircleIcon,
+    ArrowLeftStartOnRectangleIcon,
+    ShoppingBagIcon,
+    CreditCardIcon,
+    TicketIcon,
+    MapPinIcon,
+} from '@heroicons/react/24/outline';
+import { useState, useEffect } from 'react';
+
+const cx = classNames.bind(styles);
+
+function Account({ children }) {
+    const [user, setUser] = useState(null);
+    const [active, setActive] = useState('Orders');
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    const fetchUser = async () => {
+        try {
+            const response = await authApi(localStorage.getItem('access_token')).get('/users/current-user/');
+            setUser(response.data);
+        } catch (error) {
+            console.log(error);
+        }
+    };
+
+    useEffect(() => {
+        fetchUser();
+    }, []);
+
+    // Đồng bộ active state với URL hiện tại
+    useEffect(() => {
+        const path = location.pathname;
+        if (path === '/profile') {
+            setActive('Profile');
+        } else if (path === '/order') {
+            setActive('Orders');
+        } else if (path === '/address') {
+            setActive('Address');
+        } else if (path === '/coupon') {
+            setActive('Coupon');
+        } else if (path === '/cards') {
+            setActive('Cards');
+        }
+        // Có thể thêm các route khác sau
+    }, [location.pathname]);
+
+    const menuItems = [
+        { key: 'Orders', label: 'Orders', icon: ShoppingBagIcon },
+        { key: 'Profile', label: 'Profile', icon: UserCircleIcon },
+        { key: 'Address', label: 'Address', icon: MapPinIcon },
+        { key: 'Coupon', label: 'Coupon', icon: TicketIcon },
+        { key: 'Cards', label: 'Cards', icon: CreditCardIcon },
+        { key: 'Log Out', label: 'Log Out', icon: ArrowLeftStartOnRectangleIcon },
+    ];
+
+    const handleSelect = (key) => {
+        setActive(key);
+
+        // Chuyển trang dựa trên key được chọn
+        switch (key) {
+            case 'Profile':
+                navigate('/profile');
+                break;
+            case 'Orders':
+                navigate('/order');
+                break;
+            case 'Address':
+                navigate('/address');
+                break;
+            case 'Coupon':
+                navigate('/coupon');
+                break;
+            case 'Cards':
+                navigate('/cards');
+                break;
+            case 'Log Out':
+                // Xử lý logout
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user_data');
+                navigate('/login');
+                break;
+            default:
+                break;
+        }
+    };
+
+    return (
+        <div>
+            <Header />
+            <div className={cx('container')}>
+                <Breadcrumb>
+                    <Link to="/account">Account</Link>
+                    <span>{active}</span>
+                </Breadcrumb>
+                <div className={cx('wrapper')}>
+                    <div className={cx('sidebar')}>
+                        <div className={cx('customer-cart')}>
+                            <div className={cx('customer-cart-header')}>
+                                <div className={cx('customer-name')}>
+                                    {user?.last_name} {user?.first_name}
+                                </div>
+                            </div>
+                            <div className={cx('customer-cart-body')}>
+                                <div className={cx('customer-cart-item')}>
+                                    <div className={cx('point-title')}>Point</div>
+                                    <div className={cx('point-value')}>{user?.point || 0}</div>
+                                </div>
+                                <div className={cx('customer-cart-item')}>
+                                    <div className={cx('phone-title')}>Phone</div>
+                                    <div className={cx('phone-value')}>{user?.phone || 'Not updated yet'}</div>
+                                </div>
+                            </div>
+                            <div className={cx('customer-cart-footer')}>
+                                <div className={cx('member-title')}>Member</div>
+                            </div>
+                        </div>
+
+                        <nav className={cx('account-menu')}>
+                            <ul className={cx('menu-list')}>
+                                {menuItems.map(({ key, label, icon: Icon }) => (
+                                    <li
+                                        key={key}
+                                        className={cx('menu-item', { active: active === key })}
+                                        onClick={() => handleSelect(key)}
+                                    >
+                                        <Icon className={cx('menu-icon')} />
+                                        <span className={cx('menu-label')}>{label}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        </nav>
+                    </div>
+                    <div className={cx('content')}>{children}</div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+export default Account;
