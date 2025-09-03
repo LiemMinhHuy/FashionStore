@@ -115,13 +115,56 @@ class CartSerializer(serializers.ModelSerializer):
 
 class OrderDetailSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField()  # Thêm trường product_name
-
+    image = serializers.SerializerMethodField()  # Thêm trường image
     class Meta:
         model = OrderDetail
-        fields = ['id', 'product', 'product_name', 'quantity', 'unit_price', 'totalPrice', 'order', 'created_at', 'updated_at', 'is_active']
+        fields = ['id', 'product', 'product_name', 'image', 'quantity', 'unit_price', 'totalPrice', 'order', 'created_at', 'updated_at', 'is_active']
 
     def get_product_name(self, obj):
         return obj.product.name if obj.product else 'Unknown Product'
+        
+    def get_image(self, obj):
+        import urllib.parse
+        
+        if obj.product and obj.product.image:
+            image_url = None
+            
+            # Nếu là Cloudinary URL string
+            if isinstance(obj.product.image, str):
+                image_url = obj.product.image
+            # Nếu là FileField/ImageField
+            elif hasattr(obj.product.image, 'url'):
+                image_url = obj.product.image.url
+
+            if image_url:
+                # Xử lý URL Cloudinary
+                if 'cloudinary.com' in image_url:
+                    # Xóa '/media/' prefix nếu có
+                    image_url = image_url.replace('/media/', '')
+                    # Decode URL
+                    try:
+                        # Tách URL thành các phần
+                        parsed = urllib.parse.urlparse(image_url)
+                        # Decode path
+                        new_path = urllib.parse.unquote(parsed.path)
+                        # Decode query parameters nếu có
+                        new_query = urllib.parse.unquote(parsed.query) if parsed.query else ''
+                        # Tái tạo URL với các phần đã decode
+                        image_url = urllib.parse.urlunparse((
+                            parsed.scheme,
+                            parsed.netloc,
+                            new_path,
+                            parsed.params,
+                            new_query,
+                            parsed.fragment
+                        ))
+                        return image_url
+                    except:
+                        return image_url
+                return image_url
+            
+            return str(obj.product.image)
+        return None
 
 class OrderSerializer(serializers.ModelSerializer):
     order_details = OrderDetailSerializer(many=True, read_only=True)

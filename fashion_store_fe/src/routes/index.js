@@ -13,6 +13,7 @@ import ProductDetailPage from '~/pages/ProductDetail';
 import CartDetail from '~/components/CartDetails';
 import CheckOut from '~/components/CheckOut';
 import Order from '~/pages/Order';
+import OrderDetail from '~/pages/OrderDetail';
 import SignUp from '~/components/User/SignUp';
 import Payment from '~/components/Payment';
 import News from '~/components/News';
@@ -41,6 +42,7 @@ const publicRoutes = [
     { path: '/cart-details', component: CartDetail, layout: HeaderOnly },
     { path: '/checkout', component: CheckOut, layout: HeaderOnly },
     { path: '/order', component: Order, layout: Account },
+    { path: '/order/:orderId', component: OrderDetail, layout: HeaderOnly },
     { path: '/payment', component: Payment, layout: HeaderOnly },
     { path: '/payment-success', component: PaymentSuccess, layout: null },
     { path: '/payment-failed', component: PaymentFailed, layout: null },

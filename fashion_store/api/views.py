@@ -324,6 +324,50 @@ class OrderViewSet(viewsets.ViewSet, generics.ListCreateAPIView):
         if q:
             queryset = queryset.filter(orderdetail__product__name__icontains=q).distinct()
         
+        # Lọc theo status
+        status = self.request.query_params.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        # Lọc theo payment method
+        payment_method = self.request.query_params.get('payment_method')
+        if payment_method:
+            queryset = queryset.filter(payment_method=payment_method)
+        
+        # Lọc theo khoảng thời gian
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+        
+        if start_date:
+            try:
+                # Chuyển đổi start_date thành datetime và set thời gian là 00:00:00
+                start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+                start_datetime = timezone.make_aware(start_datetime.replace(hour=0, minute=0, second=0, microsecond=0))
+                queryset = queryset.filter(created_at__gte=start_datetime)
+            except ValueError:
+                # Nếu format date không đúng, bỏ qua filter này
+                pass
+        
+        if end_date:
+            try:
+                # Chuyển đổi end_date thành datetime và set thời gian là 23:59:59
+                end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
+                end_datetime = timezone.make_aware(end_datetime.replace(hour=23, minute=59, second=59, microsecond=999999))
+                queryset = queryset.filter(created_at__lte=end_datetime)
+            except ValueError:
+                # Nếu format date không đúng, bỏ qua filter này
+                pass
+        
+        # Sắp xếp theo thời gian
+        sort_by = self.request.query_params.get('sort_by')
+        if sort_by == 'newest':
+            queryset = queryset.order_by('-created_at')
+        elif sort_by == 'oldest':
+            queryset = queryset.order_by('created_at')
+        else:
+            # Mặc định sắp xếp theo mới nhất
+            queryset = queryset.order_by('-created_at')
+        
         # Lọc theo user nếu đã đăng nhập
         user = self.request.user
         if user.is_authenticated:
@@ -338,6 +382,29 @@ class OrderViewSet(viewsets.ViewSet, generics.ListCreateAPIView):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+    
+    @action(methods=['get'], detail=False, url_path='order-detail/(?P<order_id>[^/.]+)')
+    def get_order_detail(self, request, order_id=None):
+        try:
+            # Lấy order specific theo order_id
+            order = Order.objects.get(id=order_id)
+            
+            # Kiểm tra quyền truy cập (chỉ cho phép user xem order của họ)
+            if request.user.is_authenticated and order.user.id != request.user.id:
+                return Response(
+                    {'error': 'You do not have permission to view this order'}, 
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Sử dụng serializer với depth=1 để lấy thêm thông tin chi tiết
+            serializer = self.get_serializer(order, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_200_OK)
+            
+        except Order.DoesNotExist:
+            return Response(
+                {'error': 'Order not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
 
     @action(methods=['post'], detail=False, url_path='checkout')
     def checkout(self, request):

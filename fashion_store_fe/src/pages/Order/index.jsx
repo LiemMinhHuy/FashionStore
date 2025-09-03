@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { authApi } from '~/utils/request';
 import styles from './Order.module.scss';
 import classNames from 'classnames/bind';
-import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline';
+import { MagnifyingGlassIcon, FunnelIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import Tippy from '@tippyjs/react/headless';
 import { Wrapper as PopperWrapper } from '~/components/Popper';
+import Menu from '~/components/Popper/Menu';
+import 'tippy.js/dist/tippy.css';
+import { useNavigate } from 'react-router-dom';
 
 const cx = classNames.bind(styles);
 
@@ -15,72 +18,157 @@ const Order = () => {
     const [count, setCount] = useState(0);
     const [page, setPage] = useState(1);
     const [pageSize] = useState(10);
-    const [currentStatus, setCurrentStatus] = useState('Pending');
-    const [expandedOrders, setExpandedOrders] = useState([]);
+
     const [active, setActive] = useState('Orders');
     const [orderId, setOrderId] = useState('');
     const [isSearching, setIsSearching] = useState(false);
     const [filterValues, setFilterValues] = useState({
-        orderType: '',
-        paymentStatus: '',
+        status: '',
+        paymentMethod: '',
+        sortBy: 'newest',
+        startDate: '',
+        endDate: '',
     });
 
-    const fetchOrders = async (pageNum = 1, searchOrderId = '') => {
-        setLoading(true);
-        if (searchOrderId.trim()) {
-            setIsSearching(true);
-        }
-        try {
-            let url = `/orders/user-orders/?page=${pageNum}`;
+    const navigate = useNavigate();
 
-            // Thêm parameter tìm kiếm theo Order ID nếu có
+    const ORDER_STATUS_OPTIONS = [
+        { title: 'All Status', value: '' },
+        { title: 'Pending', value: 'Pending' },
+        { title: 'Processing', value: 'Processing' },
+        { title: 'Shipping', value: 'Shipping' },
+        { title: 'Completed', value: 'Completed' },
+        { title: 'Failed', value: 'Failed' },
+        { title: 'Canceled', value: 'Canceled' },
+        { title: 'Expired', value: 'Expired' },
+        { title: 'Refunding', value: 'Refunding' },
+        { title: 'Refunded', value: 'Refunded' },
+        { title: 'Chargeback', value: 'Chargeback' },
+    ];
+
+    const ORDER_PAYMENT_METHOD_OPTIONS = [
+        { title: 'All Methods', value: '' },
+        { title: 'Cash', value: 'Cash' },
+        { title: 'PayPal', value: 'PayPal' },
+        { title: 'VNPay', value: 'VNPay' },
+    ];
+
+    const SORT_OPTIONS = [
+        { title: 'Newest First', value: 'newest' },
+        { title: 'Oldest First', value: 'oldest' },
+    ];
+
+    const fetchOrders = useCallback(
+        async (pageNum = 1, searchOrderId = '', filters = filterValues) => {
+            setLoading(true);
             if (searchOrderId.trim()) {
-                url += `&order_id=${searchOrderId.trim()}`;
+                setIsSearching(true);
             }
+            try {
+                let url = `/orders/user-orders/?page=${pageNum}`;
 
-            const response = await authApi(localStorage.getItem('access_token')).get(url);
-            if (Array.isArray(response.data)) {
-                setOrders(response.data);
-                setCount(response.data.length);
-            } else if (response.data && Array.isArray(response.data.results)) {
-                setOrders(response.data.results);
-                setCount(response.data.count);
-            } else {
-                setError('Invalid data format');
+                // Thêm parameter tìm kiếm theo Order ID nếu có
+                if (searchOrderId.trim()) {
+                    url += `&order_id=${searchOrderId.trim()}`;
+                }
+
+                // Thêm filter theo status
+                if (filters.status) {
+                    url += `&status=${filters.status}`;
+                }
+
+                // Thêm filter theo payment method
+                if (filters.paymentMethod) {
+                    url += `&payment_method=${filters.paymentMethod}`;
+                }
+
+                // Thêm sort theo thời gian
+                if (filters.sortBy) {
+                    url += `&sort_by=${filters.sortBy}`;
+                }
+
+                // Chỉ áp dụng filter date range khi có cả startDate và endDate
+                if (filters.startDate && filters.endDate) {
+                    const start = new Date(filters.startDate);
+                    const end = new Date(filters.endDate);
+
+                    // Kiểm tra ngày hợp lệ và startDate <= endDate
+                    if (!isNaN(start) && !isNaN(end) && start <= end) {
+                        url += `&start_date=${filters.startDate}&end_date=${filters.endDate}`;
+                    }
+                }
+
+                const response = await authApi(localStorage.getItem('access_token')).get(url);
+                if (Array.isArray(response.data)) {
+                    setOrders(response.data);
+                    setCount(response.data.length);
+                } else if (response.data && Array.isArray(response.data.results)) {
+                    setOrders(response.data.results);
+                    setCount(response.data.count);
+                } else {
+                    setError('Invalid data format');
+                }
+            } catch (error) {
+                setError('Failed to fetch orders');
+            } finally {
+                setLoading(false);
+                setIsSearching(false);
             }
-        } catch (error) {
-            setError('Failed to fetch orders');
-        } finally {
-            setLoading(false);
-            setIsSearching(false);
-        }
-    };
+        },
+        [filterValues],
+    );
 
     useEffect(() => {
-        fetchOrders(page);
-    }, [page]);
+        fetchOrders(page, '', filterValues); // Load initial data without search
+    }, [page, filterValues, fetchOrders]);
 
-    useEffect(() => {
-        setPage(1);
-    }, [currentStatus]);
-
-    const toggleOrderDetails = (orderId) => {
-        setExpandedOrders((prev) =>
-            prev.includes(orderId) ? prev.filter((id) => id !== orderId) : [...prev, orderId],
-        );
+    const validateOrderId = (value) => {
+        // Kiểm tra OrderID chỉ chứa số và chữ cái và có ít nhất 3 ký tự
+        return /^[a-zA-Z0-9]{3,}$/.test(value);
     };
 
     const handleSearchOrder = () => {
-        setPage(1); // Reset về trang đầu tiên khi tìm kiếm
-        fetchOrders(1, orderId);
+        if (!orderId.trim()) {
+            setError('Please enter an Order ID');
+            return;
+        }
+
+        if (!validateOrderId(orderId)) {
+            setError('Order ID must be at least 3 characters and contain only letters and numbers');
+            return;
+        }
+
+        setError(null); // Reset error nếu có
+        setPage(1);
+        fetchOrders(1, orderId, filterValues);
     };
 
     const handleOrderIdChange = (e) => {
-        setOrderId(e.target.value);
-        // Tự động tìm kiếm khi người dùng nhập (debounce)
-        if (e.target.value.trim() === '') {
-            fetchOrders(1, '');
+        const newValue = e.target.value;
+        setOrderId(newValue);
+
+        // Reset error nếu input trống
+        if (!newValue.trim()) {
+            setError(null);
         }
+    };
+
+    const validateDateRange = useCallback((start, end) => {
+        if (!start || !end) return false;
+        const startDate = new Date(start);
+        const endDate = new Date(end);
+        return !isNaN(startDate) && !isNaN(endDate) && startDate <= endDate;
+    }, []);
+
+    const handleDateRangeChange = (type, value) => {
+        setFilterValues((prev) => {
+            const newValues = { ...prev, [type]: value };
+            // Chỉ thực hiện fetch khi cả 2 giá trị đều có và hợp lệ
+            if (validateDateRange(newValues.startDate, newValues.endDate)) {
+                fetchOrders(page, orderId, newValues);
+            }
+            return newValues;
+        });
     };
 
     const handleKeyPress = (e) => {
@@ -92,24 +180,27 @@ const Order = () => {
     const handleClearSearch = () => {
         setOrderId('');
         setPage(1);
-        fetchOrders(1, '');
+        fetchOrders(1, '', filterValues);
     };
 
     const handleActive = (tabItem) => {
         setActive(tabItem);
     };
 
-    const handleFilterChange = (filterType, value) => {
-        setFilterValues((prev) => ({
-            ...prev,
-            [filterType]: value,
-        }));
-        console.log('Filter changed:', filterType, value);
-    };
-
     const FilterMenu = ({ children }) => {
-        const [showFilter, setShowFilter] = useState(false);
         const [tempFilterValues, setTempFilterValues] = useState(filterValues);
+        const [isVisible, setIsVisible] = useState(false);
+
+        const handleMenuClick = (e) => {
+            e.stopPropagation();
+            setIsVisible(!isVisible);
+        };
+
+        // Chỉ set giá trị ban đầu khi component mount
+        useEffect(() => {
+            setTempFilterValues(filterValues);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, []);
 
         const handleTempFilterChange = (filterType, value) => {
             setTempFilterValues((prev) => ({
@@ -120,12 +211,12 @@ const Order = () => {
 
         const handleSave = () => {
             setFilterValues(tempFilterValues);
-            setShowFilter(false);
+            setIsVisible(false);
         };
 
         const handleCancel = () => {
             setTempFilterValues(filterValues);
-            setShowFilter(false);
+            setIsVisible(false);
         };
 
         const renderFilterContent = (attrs) => (
@@ -133,38 +224,73 @@ const Order = () => {
                 <PopperWrapper className={cx('filter-popper')}>
                     <div className={cx('filter-content')}>
                         <div className={cx('filter-section')}>
-                            <label className={cx('filter-label')}>Order Type</label>
+                            <label className={cx('filter-label')}>Status</label>
                             <div className={cx('select-wrapper')}>
-                                <select
-                                    className={cx('filter-select')}
-                                    value={tempFilterValues.orderType}
-                                    onChange={(e) => handleTempFilterChange('orderType', e.target.value)}
+                                <Menu
+                                    items={ORDER_STATUS_OPTIONS}
+                                    onChange={(item) => {
+                                        handleTempFilterChange('status', item.value);
+                                    }}
                                 >
-                                    <option value="">Select</option>
-                                    <option value="purchase">Purchase</option>
-                                    <option value="return">Return</option>
-                                    <option value="exchange">Exchange</option>
-                                </select>
-                                <div className={cx('select-arrow')}>▼</div>
+                                    <div className={cx('menu-trigger')}>
+                                        <div className={cx('select-text')}>
+                                            {tempFilterValues.status
+                                                ? ORDER_STATUS_OPTIONS.find((opt) => opt.value === tempFilterValues.status)
+                                                    ?.title
+                                                : 'All Status'}
+                                        </div>
+                                        <div className={cx('select-arrow')}>
+                                            <ChevronDownIcon className={cx('filter-icon')} />
+                                        </div>
+                                    </div>
+                                </Menu>
                             </div>
                         </div>
 
                         <div className={cx('filter-section')}>
-                            <label className={cx('filter-label')}>Order Status</label>
+                            <label className={cx('filter-label')}>Payment Method</label>
                             <div className={cx('select-wrapper')}>
-                                <select
-                                    className={cx('filter-select')}
-                                    value={tempFilterValues.paymentStatus}
-                                    onChange={(e) => handleTempFilterChange('paymentStatus', e.target.value)}
+                                <Menu
+                                    items={ORDER_PAYMENT_METHOD_OPTIONS}
+                                    onChange={(item) => {
+                                        handleTempFilterChange('paymentMethod', item.value);
+                                    }}
                                 >
-                                    <option value="">Select</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="processing">Processing</option>
-                                    <option value="shipped">Shipped</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
-                                <div className={cx('select-arrow')}>▼</div>
+                                    <div className={cx('menu-trigger')}>
+                                        <div className={cx('select-text')}>
+                                            {tempFilterValues.paymentMethod
+                                                ? ORDER_PAYMENT_METHOD_OPTIONS.find(
+                                                    (opt) => opt.value === tempFilterValues.paymentMethod,
+                                                )?.title
+                                                : 'All Methods'}
+                                        </div>
+                                        <div className={cx('select-arrow')}>
+                                            <ChevronDownIcon className={cx('filter-icon')} />
+                                        </div>
+                                    </div>
+                                </Menu>
+                            </div>
+                        </div>
+
+                        <div className={cx('filter-section')}>
+                            <label className={cx('filter-label')}>Sort by Time</label>
+                            <div className={cx('select-wrapper')}>
+                                <Menu
+                                    items={SORT_OPTIONS}
+                                    onChange={(item) => {
+                                        handleTempFilterChange('sortBy', item.value);
+                                    }}
+                                >
+                                    <div className={cx('menu-trigger')}>
+                                        <div className={cx('select-text')}>
+                                            {SORT_OPTIONS.find((opt) => opt.value === tempFilterValues.sortBy)?.title ||
+                                                'Newest First'}
+                                        </div>
+                                        <div className={cx('select-arrow')}>
+                                            <ChevronDownIcon className={cx('filter-icon')} />
+                                        </div>
+                                    </div>
+                                </Menu>
                             </div>
                         </div>
 
@@ -182,18 +308,17 @@ const Order = () => {
         );
 
         return (
-            <Tippy
-                interactive
-                delay={[0, 700]}
-                offset={[12, 8]}
-                hideOnClick={false}
-                placement="bottom-end"
-                render={renderFilterContent}
-                onHide={() => setShowFilter(false)}
-                onShow={() => setTempFilterValues(filterValues)}
-            >
-                {children}
-            </Tippy>
+            <div onClick={handleMenuClick}>
+                <Tippy
+                    interactive
+                    visible={isVisible}
+                    placement="bottom-end"
+                    onClickOutside={() => setIsVisible(false)}
+                    render={renderFilterContent}
+                >
+                    {children}
+                </Tippy>
+            </div>
         );
     };
 
@@ -278,19 +403,31 @@ const Order = () => {
                 </span>
             </div>
 
-{/* Search order by ID */}
-            <div className={cx('order-filter')}>
+            {active !== 'Orders' ? (
+                <div className={cx('no-orders-container')}>
+                    <div className={cx('no-orders-content')}>
+                        <h3>No {active} Found</h3>
+                        <p>You haven't made any {active.toLowerCase()} requests yet.</p>
+                    </div>
+                </div>
+            ) : (
+                <>
+                    <div className={cx('order-filter')}>
                 <div className={cx('filter-item', 'search-orderId')}>
-                    <button onClick={handleSearchOrder} className={cx('search-btn')} disabled={isSearching}>
+                    <button
+                        onClick={handleSearchOrder}
+                        className={cx('search-btn')}
+                        disabled={isSearching || !orderId.trim() || !validateOrderId(orderId)}
+                    >
                         <MagnifyingGlassIcon className={cx('filter-icon')} />
                     </button>
                     <input
                         type="text"
-                        placeholder={isSearching ? 'Searching...' : 'Search Order ID'}
+                        placeholder={isSearching ? 'Searching...' : 'Search Order ID (min 3 characters)'}
                         value={orderId}
                         onChange={handleOrderIdChange}
                         onKeyPress={handleKeyPress}
-                        className={cx('search-input')}
+                        className={cx('search-input', { invalid: orderId && !validateOrderId(orderId) })}
                         disabled={isSearching}
                     />
                     {orderId && !isSearching && (
@@ -298,6 +435,7 @@ const Order = () => {
                             ×
                         </button>
                     )}
+                    {error && <div className={cx('error-message')}>{error}</div>}
                 </div>
 
                 <FilterMenu>
@@ -308,19 +446,30 @@ const Order = () => {
                 </FilterMenu>
 
                 <div className={cx('filter-item', 'date-range')}>
-                    <input type="date" placeholder="Start Date" />
-                    <input type="date" placeholder="End Date" />
+                    <div className={cx('date-range-inputs')}>
+                        <input
+                            type="date"
+                            value={filterValues.startDate}
+                            onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
+                            className={cx('date-input')}
+                            placeholder="Start Date"
+                        />
+                        <span className={cx('date-separator')}>to</span>
+                        <input
+                            type="date"
+                            value={filterValues.endDate}
+                            onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
+                            className={cx('date-input')}
+                            placeholder="End Date"
+                        />
+                    </div>
                 </div>
             </div>
 
             <div className={cx('orders')}>
                 {orders.length === 0 ? (
                     <div className={cx('no-orders')}>
-                        {orderId ? (
-                            <p>No orders found with Order ID "{orderId}".</p>
-                        ) : (
-                            <p>No orders found with status "{currentStatus}".</p>
-                        )}
+                        {orderId ? <p>No orders found with Order ID "{orderId}".</p> : <p>No orders found.</p>}
                     </div>
                 ) : (
                     orders.map((order) => (
@@ -344,7 +493,9 @@ const Order = () => {
                             <div className={cx('order-item')}>
                                 <p className={cx('order-status')}>{order.status}</p>
                                 <div className={cx('btn-container')}>
-                                    <button className={cx('btn-detail')}>Detail</button>
+                                    <button className={cx('btn-detail')} onClick={() => navigate(`/order/${order.id}`)}>
+                                        Detail
+                                    </button>
                                     <button className={cx('btn-reorder')}>Reorder</button>
                                 </div>
                             </div>
@@ -353,8 +504,9 @@ const Order = () => {
                 )}
             </div>
             {renderPagination()}
-        </div>
-    );
+        </>)}
+    </div>
+);
 };
 
 export default Order;
