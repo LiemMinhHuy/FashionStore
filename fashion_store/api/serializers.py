@@ -222,7 +222,13 @@ class AddressSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """Tạo địa chỉ mới"""
-        customer = self.context['request'].user
+        # Lấy Customer instance từ User hiện tại
+        user = self.context['request'].user
+        try:
+            customer = Customer.objects.get(id=user.id)
+        except Customer.DoesNotExist:
+            raise serializers.ValidationError("User is not a customer")
+        
         validated_data['customer'] = customer
 
         # Nếu đây là địa chỉ đầu tiên, đặt làm mặc định

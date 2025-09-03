@@ -13,6 +13,7 @@ from rest_framework import generics, status, viewsets, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
 
 from api import serializers, paginators, forms, utils
 from api.models import Product, Category, User, Cart, CartItem, Order, OrderDetail, Customer, Like, News, NewsComment, Address
@@ -739,56 +740,60 @@ class NewsCommentView(generics.ListCreateAPIView):
 # ADDRESS VIEWS
 # ========================
 class AddressViewSet(viewsets.ModelViewSet):
-    """ViewSet quản lý địa chỉ của khách hàng."""
     serializer_class = serializers.AddressSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = paginators.AddressPaginator
     
     def get_queryset(self):
-        """Chỉ trả về địa chỉ của user hiện tại"""
-        return Address.objects.filter(customer=self.request.user, is_active=True)
+        try:
+            # Lấy customer instance từ user hiện tại
+            customer = Customer.objects.get(id=self.request.user.id)
+            return Address.objects.filter(customer=customer, is_active=True)
+        except Customer.DoesNotExist:
+            return Address.objects.none()
     
     def perform_create(self, serializer):
-        """Tạo địa chỉ mới"""
-        serializer.save(customer=self.request.user)
+        try:
+            # Lấy Customer instance từ user hiện tại (Customer kế thừa từ User nên có cùng id)
+            customer = Customer.objects.get(id=self.request.user.id)
+            
+            # Kiểm tra xem đã có địa chỉ nào chưa
+            existing_addresses = Address.objects.filter(customer=customer)
+            
+            # Nếu chưa có địa chỉ nào, đặt địa chỉ này làm mặc định
+            is_default = not existing_addresses.exists()
+            
+            # Lưu địa chỉ với customer instance đúng
+            serializer.save(customer=customer, is_default=is_default)
+        except Customer.DoesNotExist:
+            raise ValidationError({
+                "error": "Customer not found",
+                "detail": "Current user does not have a customer profile" })
     
     def perform_update(self, serializer):
-        """Cập nhật địa chỉ"""
-        serializer.save()
+        try:
+            # Lấy Customer instance từ user hiện tại (Customer kế thừa từ User nên có cùng id)
+            customer = Customer.objects.get(id=self.request.user.id)
+            serializer.save(customer=customer)
+        except Customer.DoesNotExist:
+            raise ValidationError("User is not a customer")
     
     @action(methods=['post'], detail=True, url_path='set-default')
     def set_default(self, request, pk=None):
-        """Đặt địa chỉ làm mặc định"""
-        address = self.get_object()
-        
-        # Bỏ mặc định tất cả địa chỉ khác
-        Address.objects.filter(customer=request.user).update(is_default=False)
-        
-        # Đặt địa chỉ này làm mặc định
-        address.is_default = True
-        address.save()
-        
-        return Response({'message': 'Đã đặt làm địa chỉ mặc định'})
-    
-    @action(methods=['get'], detail=False, url_path='default')
-    def get_default_address(self, request):
-        """Lấy địa chỉ mặc định"""
-        default_address = self.get_queryset().filter(is_default=True).first()
-        if default_address:
-            serializer = self.get_serializer(default_address)
-            return Response(serializer.data)
-        return Response({'message': 'Không có địa chỉ mặc định'}, status=status.HTTP_404_NOT_FOUND)
-    
-    @action(methods=['get'], detail=False, url_path='shipping')
-    def get_shipping_addresses(self, request):
-        """Lấy danh sách địa chỉ giao hàng"""
-        shipping_addresses = self.get_queryset().filter(is_shipping=True)
-        serializer = self.get_serializer(shipping_addresses, many=True)
-        return Response(serializer.data)
-    
-    @action(methods=['get'], detail=False, url_path='billing')
-    def get_billing_addresses(self, request):
-        """Lấy danh sách địa chỉ thanh toán"""
-        billing_addresses = self.get_queryset().filter(is_billing=True)
-        serializer = self.get_serializer(billing_addresses, many=True)
-        return Response(serializer.data)
+        try:
+            # Lấy Customer instance từ user hiện tại (Customer kế thừa từ User nên có cùng id)
+            customer = Customer.objects.get(id=request.user.id)
+            address = self.get_object()
+            
+            # Bỏ mặc định các địa chỉ khác
+            Address.objects.filter(customer=customer).update(is_default=False)
+            
+            # Đặt địa chỉ này làm mặc định
+            address.is_default = True
+            address.save()
+            
+            return Response({'message': 'Successfully set as default address'})
+        except Customer.DoesNotExist:
+            return Response({'error': 'User is not a customer'}, 
+                          status=status.HTTP_400_BAD_REQUEST)
 

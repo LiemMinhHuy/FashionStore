@@ -27,7 +27,6 @@ class User(AbstractUser):
 class Customer(User):
     point = models.IntegerField(default=0)
     phone = models.CharField(max_length=15, blank=True, null=True, default='')
-    # Xóa trường address cũ vì sẽ sử dụng model Address riêng
     
     class Meta:
         permissions = customer_permission

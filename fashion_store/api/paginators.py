@@ -20,3 +20,6 @@ class LikePaginator(pagination.PageNumberPagination):
 
 class NewsPaginator(pagination.PageNumberPagination):
     page_size = 10
+
+class AddressPaginator(pagination.PageNumberPagination):
+    page_size = 10
