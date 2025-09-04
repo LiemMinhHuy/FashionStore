@@ -177,6 +177,30 @@ class Order(BaseModel):
     billing_address = models.ForeignKey(Address, on_delete=models.SET_NULL, null=True, blank=True, related_name='billing_orders')
     payment_id = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    points_earned = models.IntegerField(default=0, help_text="Points earned from this order")
+    points_claimed = models.BooleanField(default=False, help_text="Whether points have been claimed by customer")
+    
+    def calculate_points(self):
+        """Calculate points based on order total: 1 point per $10"""
+        if self.total_amount >= 10:
+            return int(self.total_amount / 10)
+        return 0
+    
+    def can_claim_points(self):
+        """Check if customer can claim points for this order"""
+        return (self.status == 'Completed' and 
+                not self.points_claimed and 
+                self.points_earned > 0)
+    
+    def claim_points(self):
+        """Claim points for this order and add to customer's total"""
+        if self.can_claim_points():
+            self.user.point += self.points_earned
+            self.user.save()
+            self.points_claimed = True
+            self.save()
+            return True
+        return False
 
 class OrderDetail(BaseModel):
     order = models.ForeignKey(Order, models.CASCADE, related_name='order_details')

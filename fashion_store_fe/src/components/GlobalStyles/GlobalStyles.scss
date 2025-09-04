@@ -51,8 +51,7 @@ html *::-webkit-scrollbar-track {
 }
 
 button,
-input,
-[tabindex] {
+input {
     outline: none;
     border: none;
     background-color: #fff;

@@ -373,6 +373,24 @@
     font-size: 1.6rem;
 }
 
+.btn-claim-points {
+    color: #fff;
+    background-color: #28a745;
+    border: none;
+    padding: 10px 26px;
+    cursor: pointer;
+    margin-top: 10px;
+    transition: background-color 0.3s;
+    font-size: 14px;
+    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 1.6rem;
+    
+    &:hover {
+        background-color: #1e7e34;
+    }
+}
+
 .details-button:hover {
     background-color: #218838;
 }

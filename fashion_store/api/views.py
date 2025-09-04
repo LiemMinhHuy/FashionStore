@@ -183,9 +183,24 @@ class UserViewSet(viewsets.ViewSet, generics.RetrieveUpdateAPIView, generics.Lis
     def get_current_user(self, request):
         user = request.user
         if request.method == 'PATCH':
-            for k, v in request.data.items():
-                setattr(user, k, v)
+            # Cập nhật các trường của User
+            user_fields = ['first_name', 'last_name', 'email']
+            for field in user_fields:
+                if field in request.data:
+                    setattr(user, field, request.data[field])
             user.save()
+            
+            # Nếu user là Customer, cập nhật trường phone
+            try:
+                customer = Customer.objects.get(id=user.id)
+                if 'phone' in request.data:
+                    customer.phone = request.data['phone']
+                    customer.save()
+                    print(f"Updated customer phone to: {customer.phone}")  # Debug log
+            except Customer.DoesNotExist:
+                print("User is not a Customer")  # Debug log
+                pass
+    
         return Response(self.get_serializer(user).data)
 
 class LoginView(APIView):
@@ -480,6 +495,37 @@ class OrderViewSet(viewsets.ViewSet, generics.ListCreateAPIView):
             order = Order.objects.get(payment_id=payment_id)
             serializer = self.get_serializer(order)
             return Response(serializer.data, status=status.HTTP_200_OK)
+        except Order.DoesNotExist:
+            return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(methods=['post'], detail=True, url_path='claim-points')
+    def claim_points(self, request, pk=None):
+        """Customer claim points for a completed order."""
+        try:
+            order = self.get_object()
+            
+            # Kiểm tra quyền truy cập
+            if request.user.id != order.user.id:
+                return Response({'error': 'You can only claim points for your own orders'}, 
+                              status=status.HTTP_403_FORBIDDEN)
+            
+            # Tính điểm nếu chưa được tính
+            if order.points_earned == 0:
+                order.points_earned = order.calculate_points()
+                order.save()
+            
+            # Claim points
+            if order.claim_points():
+                return Response({
+                    'message': f'Successfully claimed {order.points_earned} points!',
+                    'points_earned': order.points_earned,
+                    'total_points': order.user.point
+                }, status=status.HTTP_200_OK)
+            else:
+                return Response({
+                    'error': 'Cannot claim points for this order. Order must be completed and points not already claimed.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
         except Order.DoesNotExist:
             return Response({'error': 'Order not found'}, status=status.HTTP_404_NOT_FOUND)
 

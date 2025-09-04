@@ -187,6 +187,20 @@ const Order = () => {
         setActive(tabItem);
     };
 
+    const handleClaimPoints = async (orderId) => {
+        try {
+            const response = await authApi(localStorage.getItem('access_token')).post(`/orders/${orderId}/claim-points/`);
+            if (response.data.message) {
+                alert(response.data.message);
+                // Refresh orders to update the UI
+                fetchOrders(page, orderId, filterValues);
+            }
+        } catch (error) {
+            console.log('Error claiming points:', error);
+            alert(error.response?.data?.error || 'Failed to claim points');
+        }
+    };
+
     const FilterMenu = ({ children }) => {
         const [tempFilterValues, setTempFilterValues] = useState(filterValues);
         const [isVisible, setIsVisible] = useState(false);
@@ -484,6 +498,12 @@ const Order = () => {
                                 <p>
                                     <strong>Total:</strong> {parseFloat(order.total_amount).toFixed(2)}$
                                 </p>
+                                {order.points_earned > 0 && (
+                                    <p>
+                                        <strong>Points:</strong> {order.points_earned} 
+                                        {order.points_claimed ? ' (Claimed)' : ' (Available)'}
+                                    </p>
+                                )}
                             </div>
                             <div className={cx('order-item')}>
                                 <p>
@@ -497,6 +517,14 @@ const Order = () => {
                                         Detail
                                     </button>
                                     <button className={cx('btn-reorder')}>Reorder</button>
+                                    {order.can_claim_points && (
+                                        <button 
+                                            className={cx('btn-claim-points')} 
+                                            onClick={() => handleClaimPoints(order.id)}
+                                        >
+                                            Claim {order.points_earned} Points
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>

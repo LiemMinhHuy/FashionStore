@@ -37,6 +37,7 @@ function Profile() {
         fetchUser();
     }, []);
 
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData((prev) => ({
@@ -46,14 +47,30 @@ function Profile() {
     };
 
     const handleSubmit = async (e) => {
+        console.log('Form submitted!', e);
         e.preventDefault();
+        
+        // Validate phone number if provided
+        if (formData.phone && !/^[0-9+\-\s()]+$/.test(formData.phone)) {
+            alert('Invalid phone number. Please use only numbers, +, -, spaces and parentheses.');
+            return;
+        }
+        
         try {
-            await authApi(localStorage.getItem('access_token')).put('/users/current-user/', formData);
+            await authApi(localStorage.getItem('access_token')).patch('/users/current-user/', formData);
             setEditing(false);
             fetchUser(); // Refresh user data
         } catch (error) {
             console.log('Error updating profile:', error);
+            alert('An error occurred while updating profile. Please try again.');
         }
+    };
+
+    const handleEditClick = (e) => {
+        e.preventDefault();
+        console.log('Edit button clicked, current editing state:', editing);
+        setEditing(true);
+        console.log('Editing state set to true');
     };
 
     if (loading) {
@@ -116,13 +133,13 @@ function Profile() {
                             onChange={handleInputChange}
                             disabled={!editing}
                             className={cx('form-input')}
-                            placeholder="Enter phone number"
+                            placeholder="Enter phone number (e.g., 0123456789 or +84123456789)"
                         />
                     </div>
 
                     <div className={cx('form-actions')}>
                         {!editing ? (
-                            <button type="button" onClick={() => setEditing(true)} className={cx('btn-edit')}>
+                            <button type="button" onClick={handleEditClick} className={cx('btn-edit')}>
                                 Edit Profile
                             </button>
                         ) : (
@@ -150,6 +167,7 @@ function Profile() {
                     </div>
                 </form>
             </div>
+            {console.log('Current editing state:', editing)}
         </div>
     );
 }

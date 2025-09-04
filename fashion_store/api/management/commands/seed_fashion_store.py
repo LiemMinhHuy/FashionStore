@@ -3,7 +3,6 @@ import random
 
 from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
-from django_seed import Seed
 
 from api.models import User, Category, Product, Cart, CartItem, Order, OrderDetail, News, Like, Customer
 
@@ -11,27 +10,37 @@ class Command(BaseCommand):
     help = "Gieo dữ liệu vào cơ sở dữ liệu với dữ liệu ban đầu cho việc kiểm tra và phát triển."
 
     def handle(self, *args, **options):
-        seeder = Seed.seeder(locale="en_US")
-
-        # Tạo dữ liệu mẫu cho bảng User
-        seeder.add_entity(User, 50, {
-            "avatar": "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample",
-            "last_login": None,
-            "password": make_password("password123"),
-            "is_superuser": False,
-            "is_staff": False,
-            "email": lambda x: seeder.faker.email(),
-            "username": lambda x: seeder.faker.user_name(),
-        })
-
-        # Tạo dữ liệu mẫu cho bảng Customer
-        seeder.add_entity(Customer, 150, {
-            "avatar": "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample",
-            "last_login": None,
-            "password": make_password("password123"),
-            "email": lambda x: seeder.faker.email(),
-            "username": lambda x: seeder.faker.user_name(),
-        })
+        # Tạo một số User và Customer đơn giản
+        self.stdout.write("Đang tạo User và Customer...")
+        
+        # Tạo 10 User
+        for i in range(10):
+            User.objects.get_or_create(
+                username=f"user{i+1}",
+                defaults={
+                    "email": f"user{i+1}@example.com",
+                    "first_name": f"User{i+1}",
+                    "last_name": "Test",
+                    "password": make_password("password123"),
+                    "is_staff": False,
+                }
+            )
+        
+        # Tạo 20 Customer
+        for i in range(20):
+            Customer.objects.get_or_create(
+                username=f"customer{i+1}",
+                defaults={
+                    "email": f"customer{i+1}@example.com",
+                    "first_name": f"Customer{i+1}",
+                    "last_name": "Test",
+                    "password": make_password("password123"),
+                    "phone": f"012345678{i}",
+                    "point": 0,
+                }
+            )
+        
+        self.stdout.write(self.style.SUCCESS('Đã tạo User và Customer.'))
 
         # Danh sách tên danh mục
         category_names = [
@@ -46,12 +55,6 @@ class Command(BaseCommand):
             category, created = Category.objects.get_or_create(name=name)
             categories.append(category)
         self.stdout.write(self.style.SUCCESS(f'Đã tạo {len(categories)} danh mục.'))
-
-        # Thực thi seeder cho User và Customer
-        inserted_pks = seeder.execute()
-
-        # Lấy tất cả khách hàng đã tạo
-        customers = list(Customer.objects.all())
 
         # Định nghĩa tên sản phẩm cho từng danh mục
         category_product_names = {
@@ -74,7 +77,7 @@ class Command(BaseCommand):
         for category in categories:
             names = category_product_names.get(category.name, ["Generic Product"])
             chosen_names = set()
-            for _ in range(10):  # Tạo 10 sản phẩm cho mỗi danh mục
+            for _ in range(5):  # Tạo 5 sản phẩm cho mỗi danh mục
                 product_name = random.choice(names)
                 while product_name in chosen_names:
                     product_name = random.choice(names)
@@ -85,8 +88,8 @@ class Command(BaseCommand):
                     price=round(random.uniform(10.0, 500.0), 2),
                     category=category,
                     image="https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-5",
-                    quantity=30,  # Đặt số lượng cho mỗi sản phẩm là 30
-                    description=seeder.faker.sentence(nb_words=15)  # Thêm mô tả ngắn cho sản phẩm
+                    quantity=30,
+                    description=f"Description for {product_name}"
                 )
                 product_list.append(product)
 
@@ -96,56 +99,42 @@ class Command(BaseCommand):
 
         # Tạo giỏ hàng cho mỗi khách hàng
         self.stdout.write("Đang tạo giỏ hàng...")
+        customers = list(Customer.objects.all())
         for customer in customers:
             Cart.objects.get_or_create(user=customer)
 
         self.stdout.write(self.style.SUCCESS(f'Đã tạo {len(customers)} giỏ hàng.'))
 
-        # Chuẩn bị cho CartItems và Orders
-        carts = list(Cart.objects.all())
+        # Tạo một số đơn hàng mẫu
+        self.stdout.write("Đang tạo đơn hàng...")
         products = list(Product.objects.all())
+        
+        # Tạo 10 đơn hàng mẫu
+        for i in range(10):
+            customer = random.choice(customers)
+            total_amount = round(random.uniform(50.0, 1000.0), 2)
+            
+            order = Order.objects.create(
+                user=customer,
+                total_amount=total_amount,
+                payment_status=random.choice(["Paid", "Pending", "Failed"]),
+                status=random.choice(["Completed", "Processing", "Pending"]),
+                payment_method=random.choice(["Cash", "PayPal", "VNPay"]),
+                points_earned=int(total_amount / 10) if total_amount >= 10 else 0,
+                points_claimed=False
+            )
+            
+            # Tạo OrderDetail cho đơn hàng
+            product = random.choice(products)
+            quantity = random.randint(1, 3)
+            OrderDetail.objects.create(
+                order=order,
+                product=product,
+                quantity=quantity,
+                unit_price=product.price,
+                totalPrice=product.price * quantity
+            )
 
-        # Tạo dữ liệu mẫu cho CartItem
-        seeder.add_entity(CartItem, 200, {
-            "cart": lambda x: random.choice(carts),
-            "product": lambda x: random.choice(products),
-            "quantity": lambda x: random.randint(1, 5)
-        })
-
-        # Tạo dữ liệu mẫu cho Order
-        seeder.add_entity(Order, 200, {
-            "user": lambda x: random.choice(customers),
-            "total_amount": lambda x: round(random.uniform(50.0, 1000.0), 2),
-            "payment_status": lambda x: random.choice(["Paid", "Pending", "Failed"]),
-            "shipping_address": lambda x: random.choice(["123 Main St", "456 Elm St", "789 Oak St", "321 Pine St", "654 Maple Ave"])
-        })
-
-        inserted_pks.update(seeder.execute())
-
-        orders = list(Order.objects.all())
-
-        # Tạo dữ liệu mẫu cho OrderDetail
-        seeder.add_entity(OrderDetail, 200, {
-            "order": lambda x: random.choice(orders),
-            "product": lambda x: random.choice(products),
-            "quantity": lambda x: random.randint(1, 3),
-            "unit_price": lambda x: random.choice(products).price,
-            "totalPrice": lambda x: random.choice(products).price * random.randint(1, 3)
-        })
-
-        # Tạo dữ liệu mẫu cho News
-        seeder.add_entity(News, 200, {
-            "title": lambda x: seeder.faker.sentence(),
-            "content": lambda x: seeder.faker.paragraph(),
-            "image": "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-5"
-        })
-
-        # Tạo dữ liệu mẫu cho Like
-        seeder.add_entity(Like, 200, {
-            "user": lambda x: random.choice(customers),
-            "product": lambda x: random.choice(products),  # Change this line to use 'product' instead of 'news'
-        })
-
-        inserted_pks.update(seeder.execute())
+        self.stdout.write(self.style.SUCCESS('Đã tạo 10 đơn hàng mẫu.'))
 
         self.stdout.write(self.style.SUCCESS('Cơ sở dữ liệu đã được gieo dữ liệu thành công với dữ liệu ban đầu cho Cửa Hàng Thời Trang.'))

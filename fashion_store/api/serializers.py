@@ -35,6 +35,7 @@ class LikeSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     role = serializers.SerializerMethodField()
+    phone = serializers.SerializerMethodField()
 
     def create(self, validated_data):
         data = validated_data.copy()
@@ -67,6 +68,14 @@ class UserSerializer(serializers.ModelSerializer):
             return "customer"
         return "staff" if instance.is_staff else "regular"
 
+    def get_phone(self, instance):
+        # Lấy Customer instance từ User instance
+        try:
+            customer = Customer.objects.get(id=instance.id)
+            return customer.phone
+        except Customer.DoesNotExist:
+            return None
+
     def to_representation(self, instance):
         rep = super().to_representation(instance)
         if instance.avatar:
@@ -77,7 +86,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'email', 'username', 'password', 'avatar', 'role']
+        fields = ['id', 'first_name', 'last_name', 'email', 'username', 'password', 'avatar', 'role', 'phone']
         extra_kwargs = {
             'password': {
                 'write_only': True
@@ -169,11 +178,15 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 class OrderSerializer(serializers.ModelSerializer):
     order_details = OrderDetailSerializer(many=True, read_only=True)
     customer = UserSerializer(source='user', read_only=True)  # Sử dụng source để lấy thông tin từ trường 'user'
+    can_claim_points = serializers.SerializerMethodField()
 
     class Meta:
         model = Order
         fields = '__all__'
-        read_only_fields = ['user', 'total_amount', 'created_at', 'updated_at', 'order_details', 'customer', "status"]
+        read_only_fields = ['user', 'total_amount', 'created_at', 'updated_at', 'order_details', 'customer', "status", 'points_earned', 'points_claimed']
+    
+    def get_can_claim_points(self, obj):
+        return obj.can_claim_points()
 
 class NewsSerializer(serializers.ModelSerializer):
     class Meta:
