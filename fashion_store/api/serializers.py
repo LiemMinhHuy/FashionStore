@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from api.models import Product, Category, User, Customer, Staff, Cart, CartItem, OrderDetail, Order, Like, News, NewsComment, Address
+from api.models import Product, Category, User, Customer, Staff, Cart, CartItem, OrderDetail, Order, Like, News, NewsComment, Address, ProductImage
 from django.contrib.auth.models import Permission
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -8,12 +8,19 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ['id', 'name']
 
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ["id", "image"]
+
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer()
+    images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'price', 'category', 'image', 'quantity', 'description']  # List all relevant fields
+        fields = ['id', 'name', 'price', 'category', 'thumbnail', 'quantity', 'description', 'images']
+
 
 class AuthenticatedProductDetailsSerializer(ProductSerializer):
     liked = serializers.SerializerMethodField()

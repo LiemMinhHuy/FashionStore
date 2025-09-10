@@ -97,6 +97,7 @@ function Account({ children }) {
             <Header />
             <div className={cx('container')}>
                 <Breadcrumb>
+                    <Link to="/">Home</Link>
                     <Link to="/account">Account</Link>
                     <span>{active}</span>
                 </Breadcrumb>

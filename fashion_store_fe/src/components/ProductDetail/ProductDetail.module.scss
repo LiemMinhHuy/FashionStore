@@ -2,7 +2,7 @@
 
 .product-detail {
     padding: 0 20px;
-    margin-top: 100px;
+    margin-bottom: 20px;
 }
 
 .breadcrumb {
@@ -10,7 +10,7 @@
 }
 
 .breadcrumb-item {
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     font-weight: 400;
     color: #777;
     margin-right: 4px;
@@ -20,6 +20,7 @@
 .product-detail-container {
     @include flex(row, space-between, center);
     width: 100%;
+    margin-top: 20px;
 
     .product-image-container {
         width: 65%;

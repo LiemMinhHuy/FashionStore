@@ -6,6 +6,8 @@ import * as productDetail from '~/api/productDetail'; // Gọi API để lấy s
 import { CartContext } from '~/utils/Context/cartContext';
 import { MyUserContext } from '~/utils/Context/context';
 import Alert from '../Alert';
+import Breadcrumb from '../Breadcrumb';
+import { Link } from 'react-router-dom';
 
 const cx = classNames.bind(styles);
 
@@ -84,13 +86,11 @@ function ProductDetail() {
     // Hiển thị thông tin sản phẩm
     return (
         <div className={cx('product-detail')}>
-            <div className={cx('breadcrumb')}>
-                <span className={cx('breadcrumb-item')}>Shop</span>
-                <span className={cx('breadcrumb-item')}>/</span>
-                <span className={cx('breadcrumb-item')}>{product.category.name}</span>
-                <span className={cx('breadcrumb-item')}>/</span>
-                <span className={cx('breadcrumb-item')}>{product.name}</span>
-            </div>
+            <Breadcrumb className={cx('breadcrumb')}>
+                <Link to="/products">Shop</Link>
+                <Link to={`/products/${product.id}`}>{product.category.name}</Link>
+                <span>{product.name}</span>
+            </Breadcrumb>
             <div className={cx('product-detail-container')}>
                 <div className={cx('product-image-container')}>
                     <img
@@ -100,7 +100,7 @@ function ProductDetail() {
                 </div>
                 <div className={cx('product-info-container')}>
                     <h2 className={cx('product-name')}>{product.name}</h2>
-                    <p className={cx('product-price')}>$ {product.price} USD</p>
+                    <p className={cx('product-price')}>$ {product.price}</p>
                     <p className={cx('product-description')}>{product.description}</p>
                     <div className={cx('product-quantity')}>
                         <span className={cx('product-quantity-text')}>Quantity:</span>

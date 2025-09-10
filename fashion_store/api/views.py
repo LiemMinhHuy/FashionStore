@@ -88,7 +88,7 @@ class ProductViewSet(viewsets.ViewSet, generics.ListAPIView):
             category_id = self.request.query_params.get('category_id')
             if category_id:
                 queryset = queryset.filter(category_id=category_id)
-            sort_option = self.request.query_params.get('sortOption', 'latest')
+            sort_option = self.request.query_params.get('sort_option', self.request.query_params.get('sortOption', 'latest'))
             if sort_option == 'latest':
                 queryset = queryset.order_by('-created_at')
             elif sort_option == 'oldest':
@@ -119,6 +119,22 @@ class ProductViewSet(viewsets.ViewSet, generics.ListAPIView):
         except Category.DoesNotExist:
             return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
         products = Product.objects.filter(category=category, is_active=True)
+
+        # Apply optional search
+        q = request.query_params.get('q')
+        if q:
+            products = products.filter(name__icontains=q)
+
+        # Apply sorting similar to list endpoint
+        sort_option = request.query_params.get('sort_option', request.query_params.get('sortOption', 'latest'))
+        if sort_option == 'latest':
+            products = products.order_by('-created_at')
+        elif sort_option == 'oldest':
+            products = products.order_by('created_at')
+        elif sort_option == 'price_desc':
+            products = products.order_by('-price', '-created_at')
+        elif sort_option == 'price_asc':
+            products = products.order_by('price')
         page = self.paginate_queryset(products)
         if page is not None:
             serializer = self.get_paginated_response(serializers.ProductSerializer(page, many=True).data)
@@ -429,7 +445,9 @@ class OrderViewSet(viewsets.ViewSet, generics.ListCreateAPIView):
             customer = Customer.objects.get(username=user.username)
         except Customer.DoesNotExist:
             return Response({'error': 'Người dùng không phải là khách hàng'}, status=status.HTTP_400_BAD_REQUEST)
-        shipping_address = request.data.get('shipping_address')
+        # Validate and resolve shipping address as Address instance
+        shipping_address_id = request.data.get('shipping_address_id') or request.data.get('shippingAddressId')
+        shipping_address_str = request.data.get('shipping_address')
         payment_method = request.data.get('payment_method', 'Cash')
         if payment_method not in [choice[0] for choice in Order.PAYMENT_METHOD_CHOICES]:
             return Response({'error': 'Phương thức thanh toán không hợp lệ'}, status=status.HTTP_400_BAD_REQUEST)
@@ -438,11 +456,27 @@ class OrderViewSet(viewsets.ViewSet, generics.ListCreateAPIView):
             return Response({'error': 'Giỏ hàng không tồn tại hoặc trống'}, status=status.HTTP_400_BAD_REQUEST)
         total_amount = sum(item.product.price * item.quantity for item in cart.items.all())
         order_status = "Processing" if payment_method == "Cash" else "Pending"
+        # Resolve Address
+        shipping_address_obj = None
+        if shipping_address_id:
+            try:
+                shipping_address_obj = Address.objects.get(id=shipping_address_id, customer=customer)
+            except Address.DoesNotExist:
+                return Response({'error': 'Địa chỉ giao hàng không hợp lệ'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            # If FE sent a string, fallback to default shipping address
+            if shipping_address_str:
+                shipping_address_obj = Address.objects.filter(customer=customer, is_shipping=True).order_by('-is_default', '-created_at').first()
+            else:
+                shipping_address_obj = Address.objects.filter(customer=customer, is_shipping=True).order_by('-is_default', '-created_at').first()
+            if not shipping_address_obj:
+                return Response({'error': 'Thiếu địa chỉ giao hàng. Vui lòng chọn hoặc tạo địa chỉ.'}, status=status.HTTP_400_BAD_REQUEST)
+
         order = Order.objects.create(
             user=customer,
             total_amount=total_amount,
             payment_method=payment_method,
-            shipping_address=shipping_address,
+            shipping_address=shipping_address_obj,
             created_at=timezone.localtime(),
             status=order_status
         )

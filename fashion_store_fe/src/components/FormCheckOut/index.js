@@ -6,10 +6,13 @@ import classNames from 'classnames/bind';
 const cx = classNames.bind(styles);
 
 const FormCheckOut = ({ onAddressChange }) => {
+    const [fullName, setFullName] = useState('');
+    const [phone, setPhone] = useState('');
     const [provinceId, setProvinceId] = useState('');
     const [districtId, setDistrictId] = useState('');
     const [wardId, setWardId] = useState('');
     const [street, setStreet] = useState('');
+    const [postalCode, setPostalCode] = useState('');
 
     // Lấy danh sách tỉnh/thành
     const provinces = level1s;
@@ -35,24 +38,59 @@ const FormCheckOut = ({ onAddressChange }) => {
         setWardId(e.target.value);
     };
 
-    // Hàm tổng hợp địa chỉ
-    const getFullAddress = () => {
+    const getAddressPayload = () => {
         const province = provinceId ? findLevel1ById(provinceId)?.name : '';
         const district = districtId ? findById(districtId)?.name : '';
         const ward = wardId ? findById(wardId)?.name : '';
-        return [street, ward, district, province].filter(Boolean).join(', ');
+        return {
+            full_name: fullName,
+            phone: phone,
+            address_line1: street,
+            address_line2: '',
+            province,
+            district,
+            ward,
+            postal_code: postalCode,
+            country: 'Vietnam',
+            is_default: false,
+            is_billing: false,
+            is_shipping: true,
+            full_address: [street, ward, district, province].filter(Boolean).join(', '),
+        };
     };
 
     // Gọi callback mỗi khi địa chỉ thay đổi
     React.useEffect(() => {
         if (onAddressChange) {
-            onAddressChange(getFullAddress());
+            onAddressChange(getAddressPayload());
         }
         // eslint-disable-next-line
-    }, [provinceId, districtId, wardId, street]);
+    }, [fullName, phone, provinceId, districtId, wardId, street, postalCode]);
 
     return (
         <form className={cx('checkout-form')}> 
+            <div className={cx('form-group')}>
+                <label>Full name</label>
+                <input
+                    type="text"
+                    className={cx('input')}
+                    value={fullName}
+                    onChange={e => setFullName(e.target.value)}
+                    placeholder="Enter your full name"
+                    required
+                />
+            </div>
+            <div className={cx('form-group')}>
+                <label>Phone</label>
+                <input
+                    type="tel"
+                    className={cx('input')}
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="Enter your phone number"
+                    required
+                />
+            </div>
             <div className={cx('form-group')}>
                 <label>Province/City</label>
                 <select value={provinceId} onChange={handleProvinceChange} className={cx('input')} required>
@@ -88,6 +126,17 @@ const FormCheckOut = ({ onAddressChange }) => {
                     value={street}
                     onChange={e => setStreet(e.target.value)}
                     placeholder="Enter street, house number"
+                    required
+                />
+            </div>
+            <div className={cx('form-group')}>
+                <label>Postal code</label>
+                <input
+                    type="text"
+                    className={cx('input')}
+                    value={postalCode}
+                    onChange={e => setPostalCode(e.target.value)}
+                    placeholder="Enter postal code"
                     required
                 />
             </div>

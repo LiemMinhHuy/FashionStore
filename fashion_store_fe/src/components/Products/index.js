@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Products.module.scss';
@@ -65,7 +65,7 @@ function Products() {
                         page === 1 ? response.results : [...prevProducts, ...response.results],
                     );
                     setHasMore(response.next && response.results.length > 0);
-                    setCategoryName(response.results[0]?.category?.name || categoryName);
+                    setCategoryName((prev) => response.results[0]?.category?.name || prev);
                 } else {
                     setHasMore(false);
                     setError('No products found in this category.');
@@ -81,25 +81,26 @@ function Products() {
         };
 
         loadProducts();
-    }, [categoryId, page]);
-
-    const handleScroll = useCallback(
-        throttle(() => {
-            if (!loading && hasMoreRef.current && isCloseToBottom(window)) {
-                console.log('Near bottom of the page, loading more:', pageRef.current + 1);
-                setPage((prevPage) => prevPage + 1);
-            }
-        }, 300),
-        [loading],
-    );
+    }, [categoryId, page, sortOption]);
 
     useEffect(() => {
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, [handleScroll]);
+        const onScroll = throttle(() => {
+            if (!loading && hasMoreRef.current && isCloseToBottom(window)) {
+                setPage((prevPage) => prevPage + 1);
+            }
+        }, 300);
+        window.addEventListener('scroll', onScroll);
+        return () => window.removeEventListener('scroll', onScroll);
+    }, [loading]);
 
     const handleSort = (option) => {
-        setSortOption(option);
+        // Normalize incoming UI options to API values
+        const normalized = option === 'price-desc' ? 'price_desc' : option === 'price-asc' ? 'price_asc' : option;
+        setSortOption(normalized);
+        // Reset pagination and list when changing sort
+        setPage(1);
+        setProducts([]);
+        setHasMore(true);
         setShowSortMenu(false);
     };
 
@@ -120,9 +121,6 @@ function Products() {
                             <span className={cx('breadcrumb-item')}>/</span>
                             <span className={cx('breadcrumb-item')}>{categoryName}</span>
                         </div>
-                        <div className={cx('sort-bar-item-count')}>
-                            {products.length} products
-                        </div>
                     </div>
                     <div className={cx('sort-bar-item')} style={{ position: 'relative' }}>
                         <FunnelIcon className={cx('sort-bar-icon')} />
@@ -135,15 +133,15 @@ function Products() {
                             <div className={cx('sort-dropdown')}>
                                 <div className={cx('sort-dropdown-title')}>Sort by</div>
                                 <div
-                                    className={cx('sort-dropdown-item', { active: sortOption === 'price-desc' })}
-                                    onClick={() => handleSort('price-desc')}
+                                    className={cx('sort-dropdown-item', { active: sortOption === 'price_desc' })}
+                                    onClick={() => handleSort('price_desc')}
                                 >
                                     <ArrowDownIcon className={cx('sort-dropdown-icon')} />
                                     High to Low
                                 </div>
                                 <div
-                                    className={cx('sort-dropdown-item', { active: sortOption === 'price-asc' })}
-                                    onClick={() => handleSort('price-asc')}
+                                    className={cx('sort-dropdown-item', { active: sortOption === 'price_asc' })}
+                                    onClick={() => handleSort('price_asc')}
                                 >
                                     <ArrowUpIcon className={cx('sort-dropdown-icon')} />
                                     Low to High
@@ -160,8 +158,8 @@ function Products() {
                                     <Link to={`/products/${product.id}`} className={cx('image-link')}>
                                         <img
                                             src={
-                                                product.image
-                                                    ? product.image.replace('/media/https%3A', 'https://')
+                                                product.thumbnail
+                                                    ? product.thumbnail.replace('/media/https%3A', 'https://')
                                                     : '/path/to/default/image.jpg'
                                             }
                                             alt={product.name}
@@ -172,7 +170,7 @@ function Products() {
                                         </div>
                                         <div className={cx('product-text')}>
                                             <h3>{product.name}</h3>
-                                            <p>Price: {product.price} VND</p>
+                                            <p>${product.price}</p>
                                         </div>
                                     </Link>
                                 </div>

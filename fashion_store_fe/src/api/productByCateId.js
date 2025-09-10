@@ -7,7 +7,8 @@ export const product = async (categoryId, page = 1, sortOption = 'latest') => {
 
         //  Add sortOption to URL Query Parameter:
         if (sortOption !== 'latest') {
-            url += `&sortOption=${sortOption}`;
+            // Send both snake_case and camelCase for maximum compatibility
+            url += `&sort_option=${sortOption}&sortOption=${sortOption}`;
         }
 
         const res = await request.get(url);

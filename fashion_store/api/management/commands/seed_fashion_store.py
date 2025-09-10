@@ -1,140 +1,478 @@
-from datetime import datetime
 import random
 
 from django.contrib.auth.hashers import make_password
 from django.core.management.base import BaseCommand
 
-from api.models import User, Category, Product, Cart, CartItem, Order, OrderDetail, News, Like, Customer
+from api.models import User, Category, Product, ProductImage, Cart, Order, OrderDetail, Customer
 
-class Command(BaseCommand):
-    help = "Gieo dữ liệu vào cơ sở dữ liệu với dữ liệu ban đầu cho việc kiểm tra và phát triển."
 
-    def handle(self, *args, **options):
-        # Tạo một số User và Customer đơn giản
-        self.stdout.write("Đang tạo User và Customer...")
-        
-        # Tạo 10 User
-        for i in range(10):
-            User.objects.get_or_create(
-                username=f"user{i+1}",
-                defaults={
-                    "email": f"user{i+1}@example.com",
-                    "first_name": f"User{i+1}",
-                    "last_name": "Test",
-                    "password": make_password("password123"),
-                    "is_staff": False,
-                }
-            )
-        
-        # Tạo 20 Customer
-        for i in range(20):
-            Customer.objects.get_or_create(
-                username=f"customer{i+1}",
-                defaults={
-                    "email": f"customer{i+1}@example.com",
-                    "first_name": f"Customer{i+1}",
-                    "last_name": "Test",
-                    "password": make_password("password123"),
-                    "phone": f"012345678{i}",
-                    "point": 0,
-                }
-            )
-        
-        self.stdout.write(self.style.SUCCESS('Đã tạo User và Customer.'))
+# ===== Cấu hình dễ chỉnh sửa =====
+DEFAULT_NUM_USERS = 10
+DEFAULT_NUM_CUSTOMERS = 20
+DEFAULT_PRODUCTS_PER_CATEGORY = 5
+DEFAULT_NUM_ORDERS = 10
+DEFAULT_PRODUCT_QUANTITY = 30
+DEFAULT_EXTRA_IMAGES_PER_PRODUCT = 3
 
-        # Danh sách tên danh mục
-        category_names = [
-            "Jackets", "T-Shirts", "Shirts", "Vests", "Jeans",
-            "Khaki Pants", "Sportswear", "Watches", "Glasses", "Belts", "Hats",
-        ]
+# Danh sách URL ảnh mẫu (có thể thêm/bớt dễ dàng)
+SAMPLE_IMAGE_URLS = [
+    "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-1",
+    "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-2", 
+    "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-3",
+    "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-4",
+    "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-5",
+    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=500&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=500&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1445205170230-053b83016050?w=500&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=500&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=500&h=500&fit=crop",
+]
 
-        # Tạo dữ liệu mẫu cho bảng Category
-        self.stdout.write("Đang tạo danh mục...")
-        categories = []
-        for name in category_names:
-            category, created = Category.objects.get_or_create(name=name)
-            categories.append(category)
-        self.stdout.write(self.style.SUCCESS(f'Đã tạo {len(categories)} danh mục.'))
+# Danh sách tên danh mục (có thể thêm/bớt dễ dàng)
+CATEGORY_NAMES = [
+    "Jackets", "T-Shirts", "Shirts", "Vests", "Jeans",
+    "Khaki Pants", "Sportswear", "Watches", "Glasses", "Belts", "Hats",
+]
 
-        # Định nghĩa tên sản phẩm cho từng danh mục
-        category_product_names = {
-            "Jackets": ["Leather Jacket", "Denim Jacket", "Bomber Jacket", "Puffer Jacket", "Windbreaker", "Blazer", "Field Jacket", "Trucker Jacket", "Overcoat", "Faux Fur Jacket"],
-            "T-Shirts": ["Classic White T-Shirt", "Striped Polo Shirt", "Graphic Tee", "V-Neck T-Shirt", "Round Neck T-Shirt", "Henley T-Shirt", "Printed T-Shirt", "Tie-Dye T-Shirt", "Pocket T-Shirt", "Long Sleeve T-Shirt"],
-            "Shirts": ["Oxford Shirt", "Chambray Shirt", "Flannel Shirt", "Button-Up Shirt", "Short Sleeve Shirt", "Dress Shirt", "Plaid Shirt", "Linen Shirt", "Hawaiian Shirt", "Tartan Shirt"],
-            "Vests": ["Wool Blazer", "Casual Vest", "Double-Breasted Blazer", "Puffer Vest", "Denim Vest", "Formal Vest", "Utility Vest", "Leather Vest", "Fleece Vest", "Padded Vest"],
-            "Jeans": ["Slim Fit Jeans", "Straight Leg Jeans", "Bootcut Jeans", "Skinny Jeans", "Relaxed Fit Jeans", "Flare Jeans", "Wide Leg Jeans", "High-Waisted Jeans", "Distressed Jeans", "Cropped Jeans"],
-            "Khaki Pants": ["Slim Khaki Pants", "Chino Trousers", "Cargo Pants", "Classic Fit Khakis", "Relaxed Fit Chinos", "Tapered Khakis", "Pleated Khakis", "Khaki Shorts", "Linen Trousers", "Drawstring Pants"],
-            "Sportswear": ["Running Shorts", "Yoga Pants", "Sports Tank Top", "Athletic Leggings", "Compression Shorts", "Sports Bra", "Joggers", "Windbreaker Pants", "Track Jacket", "Fleece Hoodie"],
-            "Watches": ["Digital Watch", "Analog Watch", "Smartwatch", "Dive Watch", "Chronograph Watch", "Dress Watch", "Fitness Tracker", "Luxury Watch", "Sports Watch", "Smart Fitness Watch"],
-            "Glasses": ["Aviator Sunglasses", "Round Glasses", "Wayfarer Sunglasses", "Cat-Eye Sunglasses", "Oversized Sunglasses", "Polarized Sunglasses", "Reading Glasses", "Bifocal Glasses", "Sunglasses with UV Protection", "Geek Chic Glasses"],
-            "Belts": ["Leather Belt", "Canvas Belt", "Reversible Belt", "Braided Belt", "Dress Belt", "Casual Belt", "Wide Belt", "Thin Belt", "Elastic Belt", "Fashion Belt"],
-            "Hats": ["Baseball Cap", "Beanie", "Fedora", "Snapback Cap", "Sun Hat", "Bucket Hat", "Cowboy Hat", "Panama Hat", "Newsboy Cap", "Beanie with Pom-Pom"],
+# Cấu trúc sản phẩm cụ thể cho từng danh mục (tên, giá, mô tả, ảnh)
+CATEGORY_PRODUCTS = {
+    "T-Shirts": [
+        {
+            "name": "Cotton V-Neck Short Sleeve T-Shirt",
+            "price": 29.99,
+            "description": "Comfortable 100% cotton V-neck t-shirt with soft fabric and perfect fit. Ideal for everyday wear with a classic, timeless style.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product1/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product1/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product1/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product1/3.png"
+            ]
+        },
+        {
+            "name": "Cotton Embroidered V-Neck T-Shirt",
+            "price": 39.99,
+            "description": "Premium cotton t-shirt featuring elegant embroidered details and V-neck design. Perfect blend of comfort and style for any occasion.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product2/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product2/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product2/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product2/3.png"
+            ]
+        },
+        {
+            "name": "Simplicity Embroidered T-Shirt – Regular Fit",
+            "price": 34.99,
+            "description": "Clean and simple embroidered t-shirt with regular fit. Made from high-quality cotton for all-day comfort and effortless style.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product3/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product3/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product3/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product3/3.png"
+            ]
+        },
+        {
+            "name": "Cotton T-Shirt with Contrast Collar & Sleeve Trim",
+            "price": 44.99,
+            "description": "Stylish cotton t-shirt featuring contrast collar and sleeve trim details. A modern take on classic design with premium materials.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product4/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product4/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product4/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product4/3.png"
+            ]
+        },
+        {
+            "name": "Coffee Lovers Series 5 Embroidered Boxy T-Shirt",
+            "price": 49.99,
+            "description": "Special edition boxy fit t-shirt for coffee enthusiasts. Features unique embroidered design and relaxed fit for ultimate comfort.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product5/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product5/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product5/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product5/3.png"
+            ]
         }
+    ],
+    "Polo Shirts": [
+        {
+            "name": "Knitted Polo Shirt – Short Sleeve, Navy/White Stripes",
+            "price": 59.99,
+            "description": "Elegant knitted polo shirt with classic navy and white stripes. Perfect for casual and semi-formal occasions with premium comfort.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product6/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product6/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product6/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product6/3.png"
+            ]
+        },
+        {
+            "name": "Colorblock Cotton Polo Shirt – Short Sleeve, Loose Fit",
+            "price": 49.99,
+            "description": "Modern colorblock polo shirt with loose fit design. Features bold color combinations and comfortable cotton fabric for relaxed style.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product7/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product7/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product7/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product7/3.png"
+            ]
+        },
+        {
+            "name": "Patchwork Polo Shirt – Short Sleeve, Loose Fit",
+            "price": 54.99,
+            "description": "Unique patchwork polo shirt with artistic design elements. Loose fit ensures comfort while the patchwork pattern adds distinctive style.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product8/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product8/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product8/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product8/3.png"
+            ]
+        },
+        {
+            "name": "Cotton Polo Shirt – Short Sleeve, Contrast Collar, Fitted",
+            "price": 64.99,
+            "description": "Classic fitted polo shirt with contrast collar design. Made from premium cotton with a tailored fit for a polished, professional look.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product9/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product9/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product9/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product9/3.png"
+            ]
+        },
+        {
+            "name": "Polo Shirt – Short Sleeve, Contrast Collar 'Together in Times",
+            "price": 69.99,
+            "description": "Special edition polo shirt with 'Together in Times' design and contrast collar. A meaningful piece that combines style with a positive message.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product10/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product10/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product10/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product10/3.png"
+            ]
+        }
+    ],
+    "Shirts": [
+        {
+            "name": "Oxford Short Sleeve Shirt – Plain, Relaxed Fit",
+            "price": 79.99,
+            "description": "Classic oxford cotton shirt with relaxed fit design. Perfect for casual and business casual occasions with timeless style.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product11/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product11/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product11/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product11/3.png"
+            ]
+        },
+        {
+            "name": "Cotton Long Sleeve Shirt – Chest Pocket with Embroidery",
+            "price": 89.99,
+            "description": "Elegant long sleeve cotton shirt featuring embroidered chest pocket detail. Perfect for professional and semi-formal settings.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product12/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product12/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product12/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product12/3.png"
+            ]
+        },
+        {
+            "name": "Cuban Denim Shirt – Short Sleeve, Loose Fit",
+            "price": 94.99,
+            "description": "Stylish Cuban-style denim shirt with loose fit design. Features classic Cuban collar and comfortable denim fabric for casual wear.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product13/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product13/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product13/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product13/3.png"
+            ]
+        },
+        {
+            "name": "Short Sleeve Shirt – Single Chest Pocket 'Friend Club",
+            "price": 84.99,
+            "description": "Casual short sleeve shirt with 'Friend Club' design and single chest pocket. Perfect for relaxed social gatherings and everyday wear.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product14/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product14/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product14/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product14/3.png"
+            ]
+        },
+        {
+            "name": "Blue Striped Shirt – Long Sleeve, Loose Fit",
+            "price": 89.99,
+            "description": "Classic blue striped long sleeve shirt with loose fit design. Timeless pattern perfect for both casual and business casual occasions.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product15/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product15/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product15/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product15/3.png"
+            ]
+        }
+    ],
+    "Vests": [
+        {
+            "name": "Wrap Blazer – Cross Front Design",
+            "price": 199.99,
+            "description": "Elegant wrap blazer with cross front design. Perfect for professional and formal occasions with a sophisticated, modern look.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product16/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product16/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product16/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product16/3.png"
+            ]
+        },
+        {
+            "name": "Linen Blazer – Fitted Style",
+            "price": 149.99,
+            "description": "Lightweight linen blazer with fitted silhouette. Perfect for warm weather and summer occasions with breathable comfort.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product17/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product17/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product17/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product17/3.png"
+            ]
+        },
+        {
+            "name": "Jacquard Blazer – Stitch Detail, Fitted",
+            "price": 179.99,
+            "description": "Luxurious jacquard blazer with intricate stitch details and fitted design. Features premium fabric and sophisticated craftsmanship.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product18/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product18/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product18/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product18/3.png"
+            ]
+        },
+        {
+            "name": "Black Blazer – Rayon Spandex, Fitted",
+            "price": 159.99,
+            "description": "Classic black blazer made from rayon spandex blend with fitted design. Offers comfort and flexibility while maintaining a professional appearance.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product19/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product19/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product19/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product19/3.png"
+            ]
+        },
+        {
+            "name": "Striped Blazer – Fitted Style",
+            "price": 169.99,
+            "description": "Elegant striped blazer with fitted silhouette. Features classic pinstripe pattern perfect for business and formal occasions.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product20/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product20/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product20/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product20/3.png"
+            ]
+        }
+    ]
+}
 
-        # Tạo dữ liệu mẫu cho bảng Product
-        self.stdout.write("Đang tạo sản phẩm...")
-        product_list = []
-        for category in categories:
-            names = category_product_names.get(category.name, ["Generic Product"])
-            chosen_names = set()
-            for _ in range(5):  # Tạo 5 sản phẩm cho mỗi danh mục
-                product_name = random.choice(names)
-                while product_name in chosen_names:
-                    product_name = random.choice(names)
-                chosen_names.add(product_name)
+
+def create_users(num_users: int) -> None:
+    for i in range(num_users):
+        User.objects.get_or_create(
+            username=f"user{i+1}",
+            defaults={
+                "email": f"user{i+1}@example.com",
+                "first_name": f"User{i+1}",
+                "last_name": "Test",
+                "password": make_password("password123"),
+                "is_staff": False,
+            }
+        )
+
+
+def create_customers(num_customers: int) -> None:
+    for i in range(num_customers):
+        Customer.objects.get_or_create(
+            username=f"customer{i+1}",
+            defaults={
+                "email": f"customer{i+1}@example.com",
+                "first_name": f"Customer{i+1}",
+                "last_name": "Test",
+                "password": make_password("password123"),
+                "phone": f"012345678{i}",
+                "point": 0,
+            }
+        )
+
+
+def create_categories() -> list:
+    categories = []
+    for name in CATEGORY_NAMES:
+        category, _ = Category.objects.get_or_create(name=name)
+        categories.append(category)
+    return categories
+
+
+def create_products(categories: list, products_per_category: int, default_quantity: int, use_structured: bool = True) -> list:
+    product_list = []
+    for category in categories:
+        if use_structured and category.name in CATEGORY_PRODUCTS:
+            # Sử dụng cấu trúc cụ thể
+            products_data = CATEGORY_PRODUCTS[category.name]
+            for product_data in products_data[:products_per_category]:
+                product = Product(
+                    name=product_data["name"],
+                    price=product_data["price"],
+                    category=category,
+                    thumbnail=product_data["thumbnail"],
+                    quantity=default_quantity,
+                    description=product_data["description"]
+                )
+                product_list.append(product)
+        else:
+            # Fallback về random nếu không có cấu trúc hoặc use_structured=False
+            names = ["Generic Product"]  # Fallback
+            for _ in range(products_per_category):
+                product_name = f"Generic {category.name} {_+1}"
+                thumbnail_url = random.choice(SAMPLE_IMAGE_URLS)
 
                 product = Product(
                     name=product_name,
                     price=round(random.uniform(10.0, 500.0), 2),
                     category=category,
-                    image="https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-5",
-                    quantity=30,
+                    thumbnail=thumbnail_url,
+                    quantity=default_quantity,
                     description=f"Description for {product_name}"
                 )
                 product_list.append(product)
 
-        # Bulk create sản phẩm để tối ưu hóa hiệu suất
-        Product.objects.bulk_create(product_list)
-        self.stdout.write(self.style.SUCCESS(f'Đã tạo {len(product_list)} sản phẩm.'))
+    # Lưu products vào database
+    Product.objects.bulk_create(product_list)
+    # Lấy lại products vừa tạo từ database dựa trên tên
+    product_names = [p.name for p in product_list]
+    saved_products = list(Product.objects.filter(name__in=product_names))
+    return saved_products
 
-        # Tạo giỏ hàng cho mỗi khách hàng
-        self.stdout.write("Đang tạo giỏ hàng...")
-        customers = list(Customer.objects.all())
-        for customer in customers:
-            Cart.objects.get_or_create(user=customer)
 
-        self.stdout.write(self.style.SUCCESS(f'Đã tạo {len(customers)} giỏ hàng.'))
+def create_product_images(products: list, extra_images_per_product: int, use_structured: bool = True) -> int:
+    """Tạo ảnh phụ cho các sản phẩm"""
+    total_images = 0
+    for product in products:
+        if use_structured:
+            # Tìm ảnh cụ thể cho sản phẩm này
+            product_images = None
+            for category_name, products_data in CATEGORY_PRODUCTS.items():
+                for product_data in products_data:
+                    if product_data["name"] == product.name:
+                        product_images = product_data["images"]
+                        break
+                if product_images:
+                    break
+            
+            if product_images:
+                # Sử dụng ảnh cụ thể từ cấu trúc
+                for image_url in product_images:
+                    ProductImage.objects.create(
+                        product=product,
+                        image=image_url
+                    )
+                    total_images += 1
+            else:
+                # Fallback về random nếu không tìm thấy
+                num_images = random.randint(1, extra_images_per_product)
+                for _ in range(num_images):
+                    image_url = random.choice(SAMPLE_IMAGE_URLS)
+                    ProductImage.objects.create(
+                        product=product,
+                        image=image_url
+                    )
+                    total_images += 1
+        else:
+            # Chế độ random
+            num_images = random.randint(1, extra_images_per_product)
+            for _ in range(num_images):
+                image_url = random.choice(SAMPLE_IMAGE_URLS)
+                ProductImage.objects.create(
+                    product=product,
+                    image=image_url
+                )
+                total_images += 1
+    return total_images
 
-        # Tạo một số đơn hàng mẫu
-        self.stdout.write("Đang tạo đơn hàng...")
-        products = list(Product.objects.all())
+
+def ensure_carts_for_all_customers() -> int:
+    customers = list(Customer.objects.all())
+    for customer in customers:
+        Cart.objects.get_or_create(user=customer)
+    return len(customers)
+
+
+def create_sample_orders(num_orders: int) -> None:
+    customers = list(Customer.objects.all())
+    products = list(Product.objects.all())
+    for _ in range(num_orders):
+        customer = random.choice(customers)
+        total_amount = round(random.uniform(50.0, 1000.0), 2)
+        order = Order.objects.create(
+            user=customer,
+            total_amount=total_amount,
+            payment_status=random.choice(["Paid", "Pending", "Failed"]),
+            status=random.choice(["Completed", "Processing", "Pending"]),
+            payment_method=random.choice(["Cash", "PayPal", "VNPay"]),
+            points_earned=int(total_amount / 10) if total_amount >= 10 else 0,
+            points_claimed=False
+        )
+        product = random.choice(products)
+        quantity = random.randint(1, 3)
+        OrderDetail.objects.create(
+            order=order,
+            product=product,
+            quantity=quantity,
+            unit_price=product.price,
+            totalPrice=product.price * quantity
+        )
+
+
+class Command(BaseCommand):
+    help = "Gieo dữ liệu vào cơ sở dữ liệu với dữ liệu ban đầu cho việc kiểm tra và phát triển."
+
+    def add_arguments(self, parser):
+        parser.add_argument("--num-users", type=int, default=DEFAULT_NUM_USERS, help="Số lượng User (mặc định: 10)")
+        parser.add_argument("--num-customers", type=int, default=DEFAULT_NUM_CUSTOMERS, help="Số lượng Customer (mặc định: 20)")
+        parser.add_argument("--products-per-category", type=int, default=DEFAULT_PRODUCTS_PER_CATEGORY, help="Số sản phẩm mỗi danh mục (mặc định: 5)")
+        parser.add_argument("--orders", type=int, default=DEFAULT_NUM_ORDERS, help="Số lượng đơn hàng mẫu (mặc định: 10)")
+        parser.add_argument("--random-seed", type=int, default=None, help="Seed ngẫu nhiên để tái lập dữ liệu")
+        parser.add_argument("--product-qty", type=int, default=DEFAULT_PRODUCT_QUANTITY, help="Số lượng tồn kho mặc định cho sản phẩm")
+        parser.add_argument("--extra-images", type=int, default=DEFAULT_EXTRA_IMAGES_PER_PRODUCT, help="Số ảnh phụ tối đa cho mỗi sản phẩm (mặc định: 3)")
+        parser.add_argument("--random-mode", action="store_true", help="Sử dụng chế độ random thay vì cấu trúc cụ thể")
+
+    def handle(self, *args, **options):
+        # Seed ngẫu nhiên nếu có
+        if options.get("random_seed") is not None:
+            random.seed(options["random_seed"])
+
+        self.stdout.write("Đang tạo User và Customer...")
+        create_users(options["num_users"])
+        create_customers(options["num_customers"])
+        self.stdout.write(self.style.SUCCESS("Đã tạo User và Customer."))
+
+        self.stdout.write("Đang tạo danh mục...")
+        categories = create_categories()
+        self.stdout.write(self.style.SUCCESS(f"Đã tạo {len(categories)} danh mục."))
+
+        use_structured = not options["random_mode"]
+        mode_text = "cấu trúc cụ thể" if use_structured else "random"
         
-        # Tạo 10 đơn hàng mẫu
-        for i in range(10):
-            customer = random.choice(customers)
-            total_amount = round(random.uniform(50.0, 1000.0), 2)
-            
-            order = Order.objects.create(
-                user=customer,
-                total_amount=total_amount,
-                payment_status=random.choice(["Paid", "Pending", "Failed"]),
-                status=random.choice(["Completed", "Processing", "Pending"]),
-                payment_method=random.choice(["Cash", "PayPal", "VNPay"]),
-                points_earned=int(total_amount / 10) if total_amount >= 10 else 0,
-                points_claimed=False
-            )
-            
-            # Tạo OrderDetail cho đơn hàng
-            product = random.choice(products)
-            quantity = random.randint(1, 3)
-            OrderDetail.objects.create(
-                order=order,
-                product=product,
-                quantity=quantity,
-                unit_price=product.price,
-                totalPrice=product.price * quantity
-            )
+        self.stdout.write(f"Đang tạo sản phẩm (chế độ {mode_text})...")
+        products = create_products(
+            categories,
+            options["products_per_category"],
+            options["product_qty"],
+            use_structured
+        )
+        self.stdout.write(self.style.SUCCESS(f"Đã tạo {len(products)} sản phẩm."))
 
-        self.stdout.write(self.style.SUCCESS('Đã tạo 10 đơn hàng mẫu.'))
+        self.stdout.write(f"Đang tạo ảnh cho sản phẩm (chế độ {mode_text})...")
+        total_images = create_product_images(products, options["extra_images"], use_structured)
+        self.stdout.write(self.style.SUCCESS(f"Đã tạo {total_images} ảnh phụ cho sản phẩm."))
 
-        self.stdout.write(self.style.SUCCESS('Cơ sở dữ liệu đã được gieo dữ liệu thành công với dữ liệu ban đầu cho Cửa Hàng Thời Trang.'))
+        self.stdout.write("Đang tạo giỏ hàng...")
+        total_carts = ensure_carts_for_all_customers()
+        self.stdout.write(self.style.SUCCESS(f"Đã tạo {total_carts} giỏ hàng."))
+
+        self.stdout.write("Đang tạo đơn hàng...")
+        create_sample_orders(options["orders"])
+        self.stdout.write(self.style.SUCCESS(f"Đã tạo {options['orders']} đơn hàng mẫu."))
+
+        self.stdout.write(self.style.SUCCESS("Cơ sở dữ liệu đã được gieo dữ liệu thành công với dữ liệu ban đầu cho Cửa Hàng Thời Trang."))

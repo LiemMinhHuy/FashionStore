@@ -15,7 +15,7 @@ const CheckOut = () => {
     const {cartItems, clearCart } = useContext(CartContext);
     const [shippingAddress, setShippingAddress] = useState({});
     const [showPaymentModal, setShowPaymentModal] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState('COD');
+    const [paymentMethod, setPaymentMethod] = useState('Cash');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
     const [showNote, setShowNote] = useState(false);
@@ -34,10 +34,22 @@ const CheckOut = () => {
         console.log('Shipping address:', shippingAddress);
         console.log('Payment method:', paymentMethod);
 
-        const payload = {
-            shipping_address: shippingAddress,
+        let payload = {
             payment_method: paymentMethod,
         };
+
+        // If shippingAddress looks like an object with address fields, try to create or select an address
+        try {
+            if (shippingAddress && typeof shippingAddress === 'object' && shippingAddress.address_line1) {
+                // Create address via API then use its id
+                const createRes = await authApi(localStorage.getItem('access_token')).post('/addresses/', shippingAddress);
+                if (createRes?.data?.id) {
+                    payload.shipping_address_id = createRes.data.id;
+                }
+            }
+        } catch (e) {
+            console.error('Create address failed:', e);
+        }
 
         try {
             setLoading(true);
@@ -81,7 +93,6 @@ const CheckOut = () => {
         if (data && data.id) {
             try {
                 const payload = {
-                    shipping_address: shippingAddress, // Shipping address
                     payment_method: 'PayPal', // Payment method
                     order_id: data.id, // PayPal transaction ID
                 };
