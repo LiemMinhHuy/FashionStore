@@ -4,11 +4,9 @@ import classNames from 'classnames/bind';
 import styles from './Products.module.scss';
 import * as ProductByCategoryId from '~/api/productByCateId';
 import { isCloseToBottom } from '~/utils/utils';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import throttle from 'lodash.throttle';
-import { faEye } from '@fortawesome/free-solid-svg-icons';
 import { FunnelIcon, Bars3BottomRightIcon, ArrowDownIcon, ArrowUpIcon } from '@heroicons/react/24/outline';
 
 const cx = classNames.bind(styles);
@@ -118,12 +116,11 @@ function Products() {
                     <div className={cx('sort-bar-item')}>
                         <div className={cx('sort-bar-item')}>
                             <span className={cx('breadcrumb-item')}>Shop</span>
-                            <span className={cx('breadcrumb-item')}>/</span>
+                            <span className={cx('breadcrumb-item')}>{'>'}</span>
                             <span className={cx('breadcrumb-item')}>{categoryName}</span>
                         </div>
                     </div>
                     <div className={cx('sort-bar-item')} style={{ position: 'relative' }}>
-                        <FunnelIcon className={cx('sort-bar-icon')} />
                         <Bars3BottomRightIcon
                             className={cx('sort-bar-icon')}
                             onClick={() => setShowSortMenu((prev) => !prev)}
@@ -156,18 +153,24 @@ function Products() {
                             products.map((product) => (
                                 <div className={cx('product-item')} key={product.id}>
                                     <Link to={`/products/${product.id}`} className={cx('image-link')}>
-                                        <img
-                                            src={
-                                                product.thumbnail
-                                                    ? product.thumbnail.replace('/media/https%3A', 'https://')
-                                                    : '/path/to/default/image.jpg'
-                                            }
-                                            alt={product.name}
-                                            className={cx('product-image')}
-                                        />
-                                        <div className={cx('btn')}>
-                                            <FontAwesomeIcon icon={faEye} />
+                                        <div className={cx('product-image-container')}>
+                                            <img
+                                                src={
+                                                    product.thumbnail
+                                                        ? product.thumbnail.replace('/media/https%3A', 'https://')
+                                                        : '/path/to/default/image.jpg'
+                                                }
+                                                alt={product.name}
+                                                className={cx('product-image')}
+                                            />
+
+                                            <img
+                                                src={product.images[0].image.replace('/media/https%3A', 'https://')}
+                                                alt="product-image"
+                                                className={cx('product-image')}
+                                            />
                                         </div>
+
                                         <div className={cx('product-text')}>
                                             <h3>{product.name}</h3>
                                             <p>${product.price}</p>

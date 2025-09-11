@@ -14,7 +14,7 @@ import CartDetail from '~/components/CartDetails';
 import CheckOut from '~/components/CheckOut';
 import Order from '~/pages/Order';
 import OrderDetail from '~/pages/OrderDetail';
-import SignUp from '~/components/User/SignUp';
+import SignUp from '~/pages/SignUp';
 import Payment from '~/components/Payment';
 import News from '~/components/News';
 import NewsDetail from '~/components/NewsDetail';

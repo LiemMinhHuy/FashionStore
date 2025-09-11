@@ -13,7 +13,7 @@ import { CartContext } from '~/utils/Context/cartContext'; // Import CartContext
 import Menu from '~/components/Popper/Menu';
 import Cart from '~/components/Cart';
 import SideBar from '~/layouts/components/SideBar';
-import { ShoppingCartIcon, UserIcon } from '@heroicons/react/24/solid';
+import { ShoppingBagIcon, UserIcon } from '@heroicons/react/24/outline';
 
 const cx = classNames.bind(styles);
 
@@ -81,7 +81,7 @@ function Header() {
                 <Search />
                 <Tippy delay={[0, 50]} content="Cart" placement="bottom">
                     <button className={cx('cart')} onClick={toggleCart}>
-                        <ShoppingCartIcon className={cx('cart-icon')} />
+                        <ShoppingBagIcon className={cx('cart-icon')} />
                         <span className={cx('cart-count')}>({cartItems.length})</span>
                     </button>
                 </Tippy>
