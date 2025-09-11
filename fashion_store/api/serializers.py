@@ -71,6 +71,10 @@ class UserSerializer(serializers.ModelSerializer):
         return value
 
     def get_role(self, instance):
+        # Ưu tiên: nếu tồn tại bản ghi Customer cho user này thì là 'customer'
+        if Customer.objects.filter(id=instance.id).exists():
+            return "customer"
+        # Fallback theo quyền và is_staff
         if instance.has_perm('api.customer'):
             return "customer"
         return "staff" if instance.is_staff else "regular"

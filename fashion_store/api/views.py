@@ -21,6 +21,11 @@ from paypalrestsdk import api
 import hashlib
 import urllib.parse
 import json
+from oauth2_provider.models import AccessToken, Application, RefreshToken
+from django.utils import timezone as dj_timezone
+from datetime import timedelta
+import secrets
+from django.contrib.auth.models import Permission
 
 logger = logging.getLogger(__name__)
 
@@ -809,11 +814,11 @@ class NewsCommentView(generics.ListCreateAPIView):
                 return Response({'error': 'Parent comment not found.'}, status=404)
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            serializer.save(user=request.user.customer, news_id=news_id, parent_comment=parent_comment)
+            serializer.save(user=self.request.user.customer, news_id=news_id, parent_comment=parent_comment)
         else:
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            serializer.save(user=request.user.customer, news_id=news_id)
+            serializer.save(user=self.request.user.customer, news_id=news_id)
         return Response(serializer.data, status=201)
 
 # ========================
@@ -877,3 +882,112 @@ class AddressViewSet(viewsets.ModelViewSet):
             return Response({'error': 'User is not a customer'}, 
                           status=status.HTTP_400_BAD_REQUEST)
 
+# fashion_store/api/views.py
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from google.oauth2 import id_token as google_id_token
+from google.auth.transport import requests as google_requests
+from django.contrib.auth import get_user_model
+from django.conf import settings
+from django.http import JsonResponse
+import requests as http
+
+User = get_user_model()
+GOOGLE_CLIENT_ID = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def google_login(request):
+    try:
+        id_token = request.data.get('id_token')
+        if not id_token:
+            return JsonResponse({'detail': 'Missing id_token'}, status=400)
+
+        # Verify token with Google
+        try:
+            info = google_id_token.verify_oauth2_token(id_token, google_requests.Request(), GOOGLE_CLIENT_ID)
+        except ValueError as ve:
+            return JsonResponse({'detail': f'Invalid Google token: {str(ve)}'}, status=400)
+
+        # Basic claims validation
+        aud = info.get('aud') or info.get('audience')
+        if aud and aud != GOOGLE_CLIENT_ID:
+            return JsonResponse({'detail': 'Token audience mismatch', 'expected_aud': GOOGLE_CLIENT_ID, 'got_aud': aud}, status=400)
+        iss = info.get('iss')
+        if iss not in ['accounts.google.com', 'https://accounts.google.com']:
+            return JsonResponse({'detail': 'Invalid token issuer', 'iss': iss}, status=400)
+
+        email = info.get('email')
+        if not email:
+            return JsonResponse({'detail': 'Email claim missing in token'}, status=400)
+
+        given_name = info.get('given_name') or ''
+        family_name = info.get('family_name') or ''
+
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                'username': email,
+                'first_name': given_name,
+                'last_name': family_name,
+                'is_staff': False,
+            }
+        )
+        if not created:
+            updated = False
+            if not user.first_name and given_name:
+                user.first_name = given_name; updated = True
+            if not user.last_name and family_name:
+                user.last_name = family_name; updated = True
+            if user.is_staff is None:
+                user.is_staff = False; updated = True
+            if updated:
+                user.save()
+
+        # Ensure Customer profile exists
+        Customer.objects.get_or_create(id=user.id, defaults={'phone': '', 'point': 0})
+
+        # Ensure permission (best-effort)
+        try:
+            customer_perm = Permission.objects.get(codename='customer')
+            if not user.has_perm('api.customer'):
+                user.user_permissions.add(customer_perm)
+                user.save(update_fields=[])
+        except Permission.DoesNotExist:
+            pass
+
+        # Mint tokens via DOT
+        try:
+            application = Application.objects.get(client_id=settings.CLIENT_ID)
+        except Application.DoesNotExist:
+            return JsonResponse({'detail': 'OAuth application not found. Check CLIENT_ID in settings.'}, status=500)
+
+        access_token_ttl = getattr(settings, 'OAUTH2_PROVIDER', {}).get('ACCESS_TOKEN_EXPIRE_SECONDS', 36000)
+        now = dj_timezone.now()
+
+        access_token_str = secrets.token_urlsafe(40)
+        refresh_token_str = secrets.token_urlsafe(40)
+
+        access_token_obj = AccessToken.objects.create(
+            user=user,
+            application=application,
+            token=access_token_str,
+            scope='read write',
+            expires=now + timedelta(seconds=access_token_ttl),
+        )
+
+        RefreshToken.objects.create(
+            user=user,
+            application=application,
+            token=refresh_token_str,
+            access_token=access_token_obj
+        )
+
+        return JsonResponse({
+            'access_token': access_token_obj.token,
+            'token_type': 'Bearer',
+            'expires_in': access_token_ttl,
+            'refresh_token': refresh_token_str,
+        }, status=200)
+    except Exception as e:
+        return JsonResponse({'detail': str(e)}, status=400)
