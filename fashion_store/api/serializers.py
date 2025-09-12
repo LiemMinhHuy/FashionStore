@@ -92,7 +92,7 @@ class UserSerializer(serializers.ModelSerializer):
         if instance.avatar:
             rep['avatar'] = instance.avatar.url
         else:
-            rep['avatar'] = 'https://res.cloudinary.com/ddoebyozj/image/upload/v1726042192/avartar_twah6s.jpg'
+            rep['avatar'] = 'https://res.cloudinary.com/ddoebyozj/image/upload/v1757705018/fashion_store/avatar/avatar.jpg'
         return rep
 
     class Meta:
@@ -103,6 +103,7 @@ class UserSerializer(serializers.ModelSerializer):
                 'write_only': True
             }
         }
+        
 class CartItemSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)  # Read-only product details
     product_id = serializers.PrimaryKeyRelatedField(

@@ -7,7 +7,7 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 // fashion_store_fe/src/index.js
-const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID;
+const clientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || '26813504372-gppk46aam6s85p46th052u4uujmmp6g2.apps.googleusercontent.com';
 
 root.render(
     <React.StrictMode>

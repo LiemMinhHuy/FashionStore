@@ -74,9 +74,8 @@ function Header() {
                 </div>
             </Link>
             <div className={cx('inner')}>
-                <SideBar /> 
+                <SideBar />
             </div>
-
             <div className={cx('inner')}>
                 <Search />
                 <Tippy delay={[0, 50]} content="Cart" placement="bottom">
@@ -92,16 +91,17 @@ function Header() {
                             items={userMenu}
                             onChange={(item) => {
                                 if (item.title === 'Log out') {
-                                    handleLogout(); // Gọi hàm logout khi chọn "Log out"
+                                    handleLogout(); // Gọi hàm logout khi chọn "Log out"    
                                 }
                             }}
                         >
                             <img
                                 className={cx('user-avatar')}
                                 src={
-                                    'https://res.cloudinary.com/ddoebyozj/image/upload/v1727621006/16b2e2579118bf6fba3b56523583117f_mpdtkl.jpg'
+                                    currentUser.avatar ||
+                                    'https://res.cloudinary.com/ddoebyozj/image/upload/v1757705018/fashion_store/avatar/avatar.jpg'
                                 }
-                                alt="User avatar"
+                                alt="avatar"
                             />
                         </Menu>
                     </div>

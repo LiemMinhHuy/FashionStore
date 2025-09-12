@@ -33,8 +33,12 @@ INSTALLED_APPS = [
     'cloudinary',
     'drf_yasg',
     'rest_framework',
+    'rest_framework.authtoken',
     'corsheaders',
+    'django.contrib.sites',
 ]
+
+SITE_ID = 1
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -45,6 +49,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    # 'allauth.account.middleware.AccountMiddleware',
 ]
 ROOT_URLCONF = 'fashion_store.urls'
 
@@ -158,16 +163,58 @@ DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://accounts.google.com",
 ]
 
 # Disable CORS_ALLOW_ALL_ORIGINS if CORS_ALLOWED_ORIGINS is specified
 CORS_ALLOW_ALL_ORIGINS = False
+
+# Allow credentials for Google OAuth
+CORS_ALLOW_CREDENTIALS = True
+
+# Additional CORS settings for Google Sign-In
+CORS_ALLOW_ALL_HEADERS = True
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     '8531-2001-ee0-4f02-5180-759d-c770-f8c8-8ff0.ngrok-free.app',  # Thay bằng URL Ngrok của bạn
 ]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    # 'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+# SOCIALACCOUNT_PROVIDERS = {
+#     'google': {
+#         'APP': {
+#             'client_id': os.getenv('GOOGLE_CLIENT_ID'),
+#             'secret': os.getenv('GOOGLE_CLIENT_SECRET'),
+#             'key': '',
+#         }
+#     }
+# } 
 
 
 # OAuth2 Provider Configuration
@@ -182,7 +229,8 @@ OAUTH2_PROVIDER = {
 
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET = os.getenv('CLIENT_SECRET')
-GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID')
+GOOGLE_CLIENT_ID = '26813504372-gppk46aam6s85p46th052u4uujmmp6g2.apps.googleusercontent.com'
+GOOGLE_CLIENT_SECRET = os.getenv('GOOGLE_CLIENT_SECRET')
 
 # VNPay configuration
 VNPAY_TMN_CODE = 'GMD8US5K'
@@ -195,3 +243,7 @@ VNPAY_RETURN_URL = 'http://127.0.0.1:8000/vnpay/payment_return/'  # Thay thế b
 PAYPAL_CLIENT_ID = 'ASYyhk4BYq1XciVddBhfKgs1kPh3xOIyNWvjyTOdKPU-kdP47bu4G3OnF-3H4aMgnqRjNm_A2fr6kspW'
 PAYPAL_CLIENT_SECRET = 'EOoskqyFtjQjjiUnBo4kAMk_Xl9G7jVqaHsnoDwJzJ0SQze4SGi0kd96toD-8mt9ssZjnJdMxn7hVym1'
 PAYPAL_MODE = 'sandbox' # Or 'live' for production
+
+SITE_ID = 1  # rất quan trọng cho allauth
+LOGIN_REDIRECT_URL = "/"  # hoặc /dashboard, tùy bạn muốn redirect sau khi login
+LOGOUT_REDIRECT_URL = "/"  # nơi redirect sau khi logout

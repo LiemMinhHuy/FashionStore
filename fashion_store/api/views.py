@@ -204,12 +204,20 @@ class UserViewSet(viewsets.ViewSet, generics.RetrieveUpdateAPIView, generics.Lis
     def get_current_user(self, request):
         user = request.user
         if request.method == 'PATCH':
+            print(f"PATCH request data: {request.data}")
+            print(f"Request FILES: {request.FILES}")
+            
             # Cập nhật các trường của User
-            user_fields = ['first_name', 'last_name', 'email']
+            user_fields = ['first_name', 'last_name', 'email', 'avatar']
             for field in user_fields:
                 if field in request.data:
+                    print(f"Updating user field {field}: {request.data[field]}")
                     setattr(user, field, request.data[field])
+                elif field in request.FILES:
+                    print(f"Updating user field {field} from FILES: {request.FILES[field]}")
+                    setattr(user, field, request.FILES[field])
             user.save()
+            print(f"User saved successfully. Avatar: {user.avatar}")
             
             # Nếu user là Customer, cập nhật trường phone
             try:
@@ -890,104 +898,204 @@ from google.auth.transport import requests as google_requests
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.http import JsonResponse
-import requests as http
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from datetime import timedelta
+import secrets
+
+from oauth2_provider.models import Application, AccessToken, RefreshToken
+from django.contrib.auth.models import Permission
+
+from api.models import Customer
 
 User = get_user_model()
 GOOGLE_CLIENT_ID = getattr(settings, 'GOOGLE_CLIENT_ID', None)
+
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def google_login(request):
     try:
+        print(f"Google login request data: {request.data}")
+        
         id_token = request.data.get('id_token')
         if not id_token:
+            print("Missing id_token")
             return JsonResponse({'detail': 'Missing id_token'}, status=400)
 
-        # Verify token with Google
+        print(f"ID token received: {id_token[:50]}...")
+
+        # Verify token với Google
         try:
-            info = google_id_token.verify_oauth2_token(id_token, google_requests.Request(), GOOGLE_CLIENT_ID)
+            print("Verifying Google token...")
+            info = google_id_token.verify_oauth2_token(
+                id_token,
+                google_requests.Request(),
+                GOOGLE_CLIENT_ID
+            )
+            print(f"Token verified successfully: {info}")
         except ValueError as ve:
+            print(f"Token verification failed: {str(ve)}")
             return JsonResponse({'detail': f'Invalid Google token: {str(ve)}'}, status=400)
 
-        # Basic claims validation
-        aud = info.get('aud') or info.get('audience')
-        if aud and aud != GOOGLE_CLIENT_ID:
-            return JsonResponse({'detail': 'Token audience mismatch', 'expected_aud': GOOGLE_CLIENT_ID, 'got_aud': aud}, status=400)
-        iss = info.get('iss')
-        if iss not in ['accounts.google.com', 'https://accounts.google.com']:
-            return JsonResponse({'detail': 'Invalid token issuer', 'iss': iss}, status=400)
+        # Validate claims cơ bản
+        print("Validating token claims...")
+        validate_token_claims(info)
 
-        email = info.get('email')
-        if not email:
-            return JsonResponse({'detail': 'Email claim missing in token'}, status=400)
+        # Tạo hoặc cập nhật user
+        print("Creating/updating user...")
+        user = create_or_update_user(info)
+        print(f"User created/updated: {user.id}, {user.email}")
 
-        given_name = info.get('given_name') or ''
-        family_name = info.get('family_name') or ''
+        # Đảm bảo Customer profile tồn tại
+        print("Ensuring customer profile...")
+        ensure_customer_profile(user)
+        print("Customer profile ensured")
 
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                'username': email,
-                'first_name': given_name,
-                'last_name': family_name,
-                'is_staff': False,
-            }
-        )
-        if not created:
-            updated = False
-            if not user.first_name and given_name:
-                user.first_name = given_name; updated = True
-            if not user.last_name and family_name:
-                user.last_name = family_name; updated = True
-            if user.is_staff is None:
-                user.is_staff = False; updated = True
-            if updated:
-                user.save()
+        # Tạo access/refresh token (DOT)
+        print("Creating OAuth tokens...")
+        tokens = create_oauth_tokens(user)
+        print(f"Tokens created: {tokens}")
 
-        # Ensure Customer profile exists
-        Customer.objects.get_or_create(id=user.id, defaults={'phone': '', 'point': 0})
-
-        # Ensure permission (best-effort)
-        try:
-            customer_perm = Permission.objects.get(codename='customer')
-            if not user.has_perm('api.customer'):
-                user.user_permissions.add(customer_perm)
-                user.save(update_fields=[])
-        except Permission.DoesNotExist:
-            pass
-
-        # Mint tokens via DOT
-        try:
-            application = Application.objects.get(client_id=settings.CLIENT_ID)
-        except Application.DoesNotExist:
-            return JsonResponse({'detail': 'OAuth application not found. Check CLIENT_ID in settings.'}, status=500)
-
-        access_token_ttl = getattr(settings, 'OAUTH2_PROVIDER', {}).get('ACCESS_TOKEN_EXPIRE_SECONDS', 36000)
-        now = dj_timezone.now()
-
-        access_token_str = secrets.token_urlsafe(40)
-        refresh_token_str = secrets.token_urlsafe(40)
-
-        access_token_obj = AccessToken.objects.create(
-            user=user,
-            application=application,
-            token=access_token_str,
-            scope='read write',
-            expires=now + timedelta(seconds=access_token_ttl),
-        )
-
-        RefreshToken.objects.create(
-            user=user,
-            application=application,
-            token=refresh_token_str,
-            access_token=access_token_obj
-        )
-
-        return JsonResponse({
-            'access_token': access_token_obj.token,
-            'token_type': 'Bearer',
-            'expires_in': access_token_ttl,
-            'refresh_token': refresh_token_str,
-        }, status=200)
+        return JsonResponse(tokens, status=200)
     except Exception as e:
+        print(f"Google login error: {str(e)}")
+        print(f"Error type: {type(e)}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
         return JsonResponse({'detail': str(e)}, status=400)
+
+
+def validate_token_claims(info):
+    """Validate các claims trong Google token"""
+    aud = info.get('aud') or info.get('audience')
+    if not aud or aud != GOOGLE_CLIENT_ID:
+        raise ValidationError('Token audience mismatch')
+
+    iss = info.get('iss')
+    if iss not in ['accounts.google.com', 'https://accounts.google.com']:
+        raise ValidationError('Invalid token issuer')
+
+    if not info.get('email'):
+        raise ValidationError('Email claim missing')
+
+    if not info.get('email_verified'):
+        raise ValidationError('Email not verified')
+
+    return True
+
+
+def create_or_update_user(info):
+    """Tạo hoặc cập nhật user từ Google info"""
+    email = info['email']
+    given_name = info.get('given_name', '')
+    family_name = info.get('family_name', '')
+
+    try:
+        # Thử tìm user theo email trước
+        user = User.objects.get(email=email)
+        # User đã tồn tại, cập nhật thông tin
+        user.first_name = given_name or user.first_name
+        user.last_name = family_name or user.last_name
+        user.save()
+        return user
+    except User.DoesNotExist:
+        # User chưa tồn tại, tạo mới
+        # Tạo username unique nếu email đã được dùng làm username
+        username = email
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{email}_{counter}"
+            counter += 1
+        
+        user = User.objects.create(
+            email=email,
+            username=username,
+            first_name=given_name,
+            last_name=family_name,
+            is_staff=False
+        )
+        return user
+
+
+def ensure_customer_profile(user):
+    """Đảm bảo user có customer profile"""
+    try:
+        # Thử lấy customer profile nếu đã tồn tại
+        customer = Customer.objects.get(id=user.id)
+    except Customer.DoesNotExist:
+        # Tạo customer profile mới bằng cách copy từ user
+        # Vì Customer kế thừa từ User, cần copy tất cả fields
+        from django.utils import timezone
+        
+        customer = Customer(
+            id=user.id,
+            username=user.username,
+            email=user.email,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            is_staff=user.is_staff,
+            is_superuser=user.is_superuser,
+            is_active=user.is_active,
+            date_joined=user.date_joined,
+            last_login=user.last_login,
+            password=user.password,
+            phone='',
+            point=0,
+            # Set thủ công created_at và updated_at
+            created_at=user.created_at,
+            updated_at=timezone.now()
+        )
+        customer.save()
+
+    # Gán quyền customer
+    try:
+        customer_perm = Permission.objects.get(codename='customer')
+        if not user.has_perm('api.customer'):
+            user.user_permissions.add(customer_perm)
+            user.save()
+    except Permission.DoesNotExist:
+        pass
+
+    return customer
+
+
+def create_oauth_tokens(user):
+    """Tạo access token và refresh token"""
+    try:
+        application = Application.objects.get(client_id=settings.CLIENT_ID)
+    except Application.DoesNotExist:
+        raise ValidationError('OAuth application not configured')
+
+    access_token_ttl = getattr(settings, 'OAUTH2_PROVIDER', {}).get(
+        'ACCESS_TOKEN_EXPIRE_SECONDS',
+        36000
+    )
+
+    access_token = secrets.token_urlsafe(40)
+    refresh_token = secrets.token_urlsafe(40)
+    now = timezone.now()
+
+    # Lưu access token
+    access_token_obj = AccessToken.objects.create(
+        user=user,
+        application=application,
+        token=access_token,
+        scope='read write',
+        expires=now + timedelta(seconds=access_token_ttl)
+    )
+
+    # Lưu refresh token
+    RefreshToken.objects.create(
+        user=user,
+        application=application,
+        token=refresh_token,
+        access_token=access_token_obj
+    )
+
+    return {
+        'access_token': access_token,
+        'token_type': 'Bearer',
+        'expires_in': access_token_ttl,
+        'refresh_token': refresh_token
+    }

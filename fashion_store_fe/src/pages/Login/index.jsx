@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import { MyDispatchContext } from '~/utils/Context/context';
 import { authApi } from '~/utils/request';
 import { GoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
 import { post as apiPost } from '~/utils/request';
 
 const cx = classNames.bind(styles);
@@ -122,25 +121,48 @@ export default function Login() {
 				{/* Google Login với button tùy biến để chỉnh kích thước qua CSS */}
 				<GoogleLogin
 					onSuccess={async (credentialResponse) => {
+						console.log('Google Login Success:', credentialResponse);
 						const id_token = credentialResponse.credential;
+						console.log('ID Token:', id_token);
+						
 						try {
 							// Đúng endpoint: /auth/google/ (không có tiền tố api/)
+							console.log('Sending token to backend...');
 							const data = await apiPost('auth/google/', { id_token });
+							console.log('Backend response:', data);
 							localStorage.setItem('access_token', data.access_token);
 							const user = await authApi(data.access_token).get('users/current-user/');
+							console.log('User data:', user.data);
 							dispatch({ type: 'login', payload: user.data });
 							if (user.data.role === 'customer') navigate('/');
 							else if (user.data.role === 'staff') navigate('/admin/dashboard');
 							else if (user.data.role === 'regular') navigate('/admin/dashboard');
 						} catch (err) {
-							console.error(err);
-							setError('Google sign-in failed');
+							console.error('Google sign-in error:', err);
+							console.error('Error response:', err.response?.data);
+							console.error('Error status:', err.response?.status);
+							console.error('Error headers:', err.response?.headers);
+							console.error('Full error object:', JSON.stringify(err, null, 2));
+							
+							// Log chi tiết hơn
+							if (err.response) {
+								console.error('Response data:', err.response.data);
+								console.error('Response status:', err.response.status);
+								console.error('Response headers:', err.response.headers);
+							} else if (err.request) {
+								console.error('Request error:', err.request);
+							} else {
+								console.error('Error message:', err.message);
+							}
+							
+							setError('Google sign-in failed: ' + (err.response?.data?.detail || err.message));
 						}
 					}}
-					onError={() => {
-						console.log('Google Login Failed');
+					onError={(error) => {
+						console.error('Google Login Failed:', error);
+						setError('Google Login Failed: ' + (error.error || 'Unknown error'));
 					}}
-					useOneTap
+					useOneTap={false}
 					render={(renderProps) => (
 						<button
 							className={cx('btn-google', 'lg')}

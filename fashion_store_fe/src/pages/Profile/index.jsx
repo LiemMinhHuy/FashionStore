@@ -15,6 +15,8 @@ function Profile() {
         email: '',
         phone: '',
     });
+    const [avatar, setAvatar] = useState(null);
+    const [avatarPreview, setAvatarPreview] = useState(null);
 
     const fetchUser = async () => {
         try {
@@ -26,6 +28,7 @@ function Profile() {
                 email: response.data.email || '',
                 phone: response.data.phone || '',
             });
+            setAvatarPreview(response.data.avatar);
         } catch (error) {
             console.log('Error fetching user:', error);
         } finally {
@@ -46,6 +49,32 @@ function Profile() {
         }));
     };
 
+    const handleAvatarChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Validate file type
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file.');
+                return;
+            }
+            
+            // Validate file size (max 5MB)
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File size must be less than 5MB.');
+                return;
+            }
+            
+            setAvatar(file);
+            
+            // Create preview URL
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                setAvatarPreview(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleSubmit = async (e) => {
         console.log('Form submitted!', e);
         e.preventDefault();
@@ -57,8 +86,26 @@ function Profile() {
         }
         
         try {
-            await authApi(localStorage.getItem('access_token')).patch('/users/current-user/', formData);
+            // Create FormData for file upload
+            const submitData = new FormData();
+            submitData.append('first_name', formData.first_name);
+            submitData.append('last_name', formData.last_name);
+            submitData.append('email', formData.email);
+            submitData.append('phone', formData.phone);
+            
+            // Add avatar if selected
+            if (avatar) {
+                submitData.append('avatar', avatar);
+            }
+            
+            await authApi(localStorage.getItem('access_token')).patch('/users/current-user/', submitData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            
             setEditing(false);
+            setAvatar(null); // Clear selected file
             fetchUser(); // Refresh user data
         } catch (error) {
             console.log('Error updating profile:', error);
@@ -83,6 +130,32 @@ function Profile() {
 
             <div className={cx('profile-card')}>
                 <form onSubmit={handleSubmit} className={cx('profile-form')}>
+                    {/* Avatar Section */}
+                    <div className={cx('avatar-section')}>
+                        <div className={cx('avatar-container')}>
+                            <img 
+                                src={avatarPreview || 'https://res.cloudinary.com/ddoebyozj/image/upload/v1726042192/avartar_twah6s.jpg'} 
+                                alt="Avatar" 
+                                className={cx('avatar-image')}
+                            />
+                            {editing && (
+                                <div className={cx('avatar-overlay')}>
+                                    <input
+                                        type="file"
+                                        id="avatar-upload"
+                                        accept="image/*"
+                                        onChange={handleAvatarChange}
+                                        className={cx('avatar-input')}
+                                    />
+                                    <label htmlFor="avatar-upload" className={cx('avatar-upload-btn')}>
+                                        <i className="fas fa-camera"></i>
+                                        <span>Change Avatar</span>
+                                    </label>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
                     <div className={cx('name-group')}>
                         <div className={cx('form-group')}>
                             <label htmlFor="first_name">First Name</label>
@@ -157,6 +230,8 @@ function Profile() {
                                             email: user?.email || '',
                                             phone: user?.phone || '',
                                         });
+                                        setAvatar(null);
+                                        setAvatarPreview(user?.avatar);
                                     }}
                                     className={cx('btn-cancel')}
                                 >

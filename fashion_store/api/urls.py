@@ -29,7 +29,6 @@ urlpatterns = [
 
     path('auth/google/', views.google_login, name='google_login'),
     path('orders/execute-paypal-payment/', views.ExecutePaypalPaymentView.as_view(), name='paypal-execute'),
-
     # Bao gồm tất cả các đường dẫn từ router
     path('', include(router.urls)),
 ]
