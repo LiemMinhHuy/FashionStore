@@ -1,5 +1,5 @@
 // Header.js
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -14,6 +14,8 @@ import Menu from '~/components/Popper/Menu';
 import Cart from '~/components/Cart';
 import SideBar from '~/layouts/components/SideBar';
 import { ShoppingBagIcon, UserIcon } from '@heroicons/react/24/outline';
+import { authApi } from '~/utils/request';
+
 
 const cx = classNames.bind(styles);
 
@@ -45,6 +47,7 @@ function Header() {
     const dispatch = useContext(MyDispatchContext); // Lấy dispatch để xử lý logout
     const { cartItems } = useContext(CartContext); // Sử dụng CartContext
     const [showCart, setShowCart] = useState(false);
+    console.log('url avatar user:', currentUser?.avatar);
 
     // Hàm xử lý khi người dùng bấm nút Logout
     const handleLogout = () => {
@@ -52,6 +55,7 @@ function Header() {
         // Xóa thông tin đăng nhập khỏi localStorage
         localStorage.removeItem('access_token');
         localStorage.removeItem('user_data');
+
 
         // Dispatch action để cập nhật lại trạng thái người dùng trong context
         dispatch({

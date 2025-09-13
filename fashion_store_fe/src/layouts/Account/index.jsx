@@ -3,7 +3,8 @@ import styles from './Account.module.scss';
 import classNames from 'classnames/bind';
 import Breadcrumb from '~/components/Breadcrumb';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { authApi } from '~/utils/request';
+import { useContext } from 'react'; // Import useContext hook
+import { MyUserContext } from '~/utils/Context/context'; // Import user context
 import {
     UserCircleIcon,
     ArrowLeftStartOnRectangleIcon,
@@ -17,23 +18,10 @@ import { useState, useEffect } from 'react';
 const cx = classNames.bind(styles);
 
 function Account({ children }) {
-    const [user, setUser] = useState(null);
+    const currentUser = useContext(MyUserContext); // Sử dụng context thay vì state
     const [active, setActive] = useState('Orders');
     const navigate = useNavigate();
     const location = useLocation();
-
-    const fetchUser = async () => {
-        try {
-            const response = await authApi(localStorage.getItem('access_token')).get('/users/current-user/');
-            setUser(response.data);
-        } catch (error) {
-            console.log(error);
-        }
-    };
-
-    useEffect(() => {
-        fetchUser();
-    }, []);
 
     // Đồng bộ active state với URL hiện tại
     useEffect(() => {
@@ -106,17 +94,17 @@ function Account({ children }) {
                         <div className={cx('customer-cart')}>
                             <div className={cx('customer-cart-header')}>
                                 <div className={cx('customer-name')}>
-                                    {user?.last_name} {user?.first_name}
+                                    {currentUser?.last_name} {currentUser?.first_name}
                                 </div>
                             </div>
                             <div className={cx('customer-cart-body')}>
                                 <div className={cx('customer-cart-item')}>
                                     <div className={cx('point-title')}>Point</div>
-                                    <div className={cx('point-value')}>{user?.point || 0}</div>
+                                    <div className={cx('point-value')}>{currentUser?.point || 0}</div>
                                 </div>
                                 <div className={cx('customer-cart-item')}>
                                     <div className={cx('phone-title')}>Phone</div>
-                                    <div className={cx('phone-value')}>{user?.phone || 'Not updated yet'}</div>
+                                    <div className={cx('phone-value')}>{currentUser?.phone || 'Not updated yet'}</div>
                                 </div>
                             </div>
                             <div className={cx('customer-cart-footer')}>

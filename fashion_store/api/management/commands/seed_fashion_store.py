@@ -14,24 +14,9 @@ DEFAULT_NUM_ORDERS = 10
 DEFAULT_PRODUCT_QUANTITY = 30
 DEFAULT_EXTRA_IMAGES_PER_PRODUCT = 3
 
-# Danh sách URL ảnh mẫu (có thể thêm/bớt dễ dàng)
-SAMPLE_IMAGE_URLS = [
-    "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-1",
-    "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-2", 
-    "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-3",
-    "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-4",
-    "https://res.cloudinary.com/ddoebyozj/image/upload/f_auto,q_auto/cld-sample-5",
-    "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=500&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=500&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1445205170230-053b83016050?w=500&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=500&h=500&fit=crop",
-    "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=500&h=500&fit=crop",
-]
-
 # Danh sách tên danh mục (có thể thêm/bớt dễ dàng)
 CATEGORY_NAMES = [
-    "Jackets", "T-Shirts", "Shirts", "Vests", "Jeans",
-    "Khaki Pants", "Sportswear", "Watches", "Glasses", "Belts", "Hats",
+    "T-Shirts", "Polo Shirts", "Shirts", "Vests", "Jeans", "Accessories"
 ]
 
 # Cấu trúc sản phẩm cụ thể cho từng danh mục (tên, giá, mô tả, ảnh)
@@ -263,6 +248,120 @@ CATEGORY_PRODUCTS = {
                 "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product20/3.png"
             ]
         }
+    ], 
+    "Jeans": [
+        {
+            "name": "White Straight-Leg Jeans with Embroidered Back Pockets",
+            "price": 29.99,
+            "description": "Comfortable 100% cotton V-neck t-shirt with soft fabric and perfect fit. Ideal for everyday wear with a classic, timeless style.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product21/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product21/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product21/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product21/3.png"
+            ]
+        },
+        {
+            "name": "Straight-Leg Denim Jeans – Classic Straight Fit",
+            "price": 39.99,
+            "description": "Premium cotton t-shirt featuring elegant embroidered details and V-neck design. Perfect blend of comfort and style for any occasion.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product22/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product22/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product22/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product22/3.png"
+            ]
+        },
+        {
+            "name": "Straight-Leg Jeans – Classic Straight Fit Denim",
+            "price": 34.99,
+            "description": "Clean and simple embroidered t-shirt with regular fit. Made from high-quality cotton for all-day comfort and effortless style.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product23/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product23/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product223/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product3/3.png"
+            ]
+        },
+        {
+            "name": "Denim Jeans with Light Washed Faded Thigh Effect",
+            "price": 44.99,
+            "description": "Stylish cotton t-shirt featuring contrast collar and sleeve trim details. A modern take on classic design with premium materials.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product24/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product24/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product24/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product24/3.png"
+            ]
+        },
+        {
+            "name": "Straight-Leg Jeans – Classic Straight Fit Denim",
+            "price": 49.99,
+            "description": "Special edition boxy fit t-shirt for coffee enthusiasts. Features unique embroidered design and relaxed fit for ultimate comfort.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product25/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product25/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product25/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product25/3.png"
+            ]
+        }
+    ],
+    "Accessories": [
+        {
+            "name": "Embroidered Baseball Cap",
+            "price": 29.99,
+            "description": "Comfortable 100% cotton V-neck t-shirt with soft fabric and perfect fit. Ideal for everyday wear with a classic, timeless style.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product26/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product26/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product26/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product26/3.png"
+            ]
+        },
+        {
+            "name": "Two-Tone Embroidered Letter Baseball Cap",
+            "price": 39.99,
+            "description": "Premium cotton t-shirt featuring elegant embroidered details and V-neck design. Perfect blend of comfort and style for any occasion.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product27/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product27/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product27/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product27/3.png"
+            ]
+        },
+        {
+            "name": "Brewing Dream Baseball Cap – Adjustable Freesize",
+            "price": 34.99,
+            "description": "Clean and simple embroidered t-shirt with regular fit. Made from high-quality cotton for all-day comfort and effortless style.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product28/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product28/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product28/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product28/3.png"
+            ]
+        },
+        {
+            "name": "Coffee Lover Tote Bag – Eco-Friendly Canvas Bag",
+            "price": 44.99,
+            "description": "Stylish cotton t-shirt featuring contrast collar and sleeve trim details. A modern take on classic design with premium materials.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product29/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product29/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product29/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product29/3.png"
+            ]
+        },
+        {
+            "name": "Brewing Dream Baseball Cap – Adjustable Freesize",
+            "price": 49.99,
+            "description": "Special edition boxy fit t-shirt for coffee enthusiasts. Features unique embroidered design and relaxed fit for ultimate comfort.",
+            "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product30/thumbnail.png",
+            "images": [
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product30/1.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product30/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product30/3.png"
+            ]
+        }
     ]
 }
 
@@ -325,7 +424,8 @@ def create_products(categories: list, products_per_category: int, default_quanti
             names = ["Generic Product"]  # Fallback
             for _ in range(products_per_category):
                 product_name = f"Generic {category.name} {_+1}"
-                thumbnail_url = random.choice(SAMPLE_IMAGE_URLS)
+                # Sử dụng ảnh mặc định
+                thumbnail_url = "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product1/thumbnail.png"
 
                 product = Product(
                     name=product_name,
@@ -371,8 +471,9 @@ def create_product_images(products: list, extra_images_per_product: int, use_str
             else:
                 # Fallback về random nếu không tìm thấy
                 num_images = random.randint(1, extra_images_per_product)
-                for _ in range(num_images):
-                    image_url = random.choice(SAMPLE_IMAGE_URLS)
+                for i in range(num_images):
+                    # Sử dụng ảnh mặc định đơn giản
+                    image_url = f"https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product1/{i+1}.png"
                     ProductImage.objects.create(
                         product=product,
                         image=image_url
@@ -381,8 +482,9 @@ def create_product_images(products: list, extra_images_per_product: int, use_str
         else:
             # Chế độ random
             num_images = random.randint(1, extra_images_per_product)
-            for _ in range(num_images):
-                image_url = random.choice(SAMPLE_IMAGE_URLS)
+            for i in range(num_images):
+                # Sử dụng ảnh mặc định đơn giản
+                image_url = f"https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product1/{i+1}.png"
                 ProductImage.objects.create(
                     product=product,
                     image=image_url

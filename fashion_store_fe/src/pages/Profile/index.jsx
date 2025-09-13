@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { authApi } from '~/utils/request';
 import styles from './Profile.module.scss';
 import classNames from 'classnames/bind';
+import { MyDispatchContext } from '~/utils/Context/context'; // Import dispatch context
 
 const cx = classNames.bind(styles);
 
 function Profile() {
+    const dispatch = useContext(MyDispatchContext); // Get dispatch from context
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const [editing, setEditing] = useState(false);
@@ -80,9 +82,19 @@ function Profile() {
         e.preventDefault();
         
         // Validate phone number if provided
-        if (formData.phone && !/^[0-9+\-\s()]+$/.test(formData.phone)) {
-            alert('Invalid phone number. Please use only numbers, +, -, spaces and parentheses.');
-            return;
+        if (formData.phone) {
+            // Check if phone number contains only valid characters
+            if (!/^[0-9+\-\s()]+$/.test(formData.phone)) {
+                alert('Invalid phone number. Please use only numbers, +, -, spaces and parentheses.');
+                return;
+            }
+            
+            // Remove all non-digit characters for length check
+            const digitsOnly = formData.phone.replace(/\D/g, '');
+            if (digitsOnly.length !== 10) {
+                alert('Phone number must contain exactly 10 digits.');
+                return;
+            }
         }
         
         try {
@@ -98,15 +110,31 @@ function Profile() {
                 submitData.append('avatar', avatar);
             }
             
-            await authApi(localStorage.getItem('access_token')).patch('/users/current-user/', submitData, {
+            const response = await authApi(localStorage.getItem('access_token')).patch('/users/current-user/', submitData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
             });
             
+            // Update the user state with the response data
+            setUser(response.data);
+            setFormData({
+                first_name: response.data.first_name || '',
+                last_name: response.data.last_name || '',
+                email: response.data.email || '',
+                phone: response.data.phone || '',
+            });
+            setAvatarPreview(response.data.avatar || 'https://res.cloudinary.com/ddoebyozj/image/upload/v1726042192/avartar_twah6s.jpg');
+            
+            // Update the context with the new user data
+            dispatch({
+                type: 'login',
+                payload: response.data
+            });
+            
             setEditing(false);
             setAvatar(null); // Clear selected file
-            fetchUser(); // Refresh user data
+            // fetchUser(); // No need to fetch again since we already have the updated data
         } catch (error) {
             console.log('Error updating profile:', error);
             alert('An error occurred while updating profile. Please try again.');

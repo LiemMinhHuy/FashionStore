@@ -1,31 +1,34 @@
+import json
 import logging
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import paypalrestsdk
 import requests
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
+from oauth2_provider.models import AccessToken, Application, RefreshToken
 from rest_framework import generics, status, viewsets, permissions
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.exceptions import ValidationError
 
-from api import serializers, paginators, forms, utils
-from api.models import Product, Category, User, Cart, CartItem, Order, OrderDetail, Customer, Like, News, NewsComment, Address
-from paypalrestsdk import api
-import hashlib
-import urllib.parse
-import json
-from oauth2_provider.models import AccessToken, Application, RefreshToken
-from django.utils import timezone as dj_timezone
-from datetime import timedelta
-import secrets
-from django.contrib.auth.models import Permission
+from api import serializers, paginators
+from api.models import (
+    Product, Category, User, Cart, CartItem, Order, OrderDetail, 
+    Customer, Like, News, NewsComment, Address
+)
 
 logger = logging.getLogger(__name__)
 
@@ -204,50 +207,37 @@ class UserViewSet(viewsets.ViewSet, generics.RetrieveUpdateAPIView, generics.Lis
     def get_current_user(self, request):
         user = request.user
         if request.method == 'PATCH':
-            print(f"PATCH request data: {request.data}")
-            print(f"Request FILES: {request.FILES}")
-            
-            # Cập nhật các trường của User
+            # Update user fields
             user_fields = ['first_name', 'last_name', 'email', 'avatar']
             for field in user_fields:
                 if field in request.data:
-                    print(f"Updating user field {field}: {request.data[field]}")
                     setattr(user, field, request.data[field])
                 elif field in request.FILES:
-                    print(f"Updating user field {field} from FILES: {request.FILES[field]}")
                     setattr(user, field, request.FILES[field])
             user.save()
-            print(f"User saved successfully. Avatar: {user.avatar}")
             
-            # Nếu user là Customer, cập nhật trường phone
+            # Update customer phone if user is a customer
             try:
                 customer = Customer.objects.get(id=user.id)
                 if 'phone' in request.data:
                     customer.phone = request.data['phone']
                     customer.save()
-                    print(f"Updated customer phone to: {customer.phone}")  # Debug log
             except Customer.DoesNotExist:
-                print("User is not a Customer")  # Debug log
                 pass
     
         return Response(self.get_serializer(user).data)
 
 class LoginView(APIView):
-    """API đăng nhập người dùng."""
+    """User login API."""
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        logger.info("LoginView.post called")
         username = request.data.get('username')
         password = request.data.get('password')
         if not username or not password:
-            logger.warning("Missing username or password")
             return JsonResponse({'error': 'Username và password là bắt buộc'}, status=400)
+        
         TOKEN_URL = 'http://127.0.0.1:8000/o/token/'
-        logger.info("Requesting token with:")
-        logger.info(f"Username: {username}, Password: {password}")
-        logger.info(f"CLIENT_ID: {settings.CLIENT_ID}")
-        logger.info(f"CLIENT_SECRET: {settings.CLIENT_SECRET}")
         response = requests.post(TOKEN_URL, data={
             'grant_type': 'password',
             'username': username,
@@ -255,8 +245,7 @@ class LoginView(APIView):
             'client_id': settings.CLIENT_ID,
             'client_secret': settings.CLIENT_SECRET
         }, timeout=10)
-        logger.info("Response Status Code: %s", response.status_code)
-        logger.info("Response Content: %s", response.content)
+        
         if response.status_code == 200:
             token_data = response.json()
             return JsonResponse({
@@ -890,24 +879,9 @@ class AddressViewSet(viewsets.ModelViewSet):
             return Response({'error': 'User is not a customer'}, 
                           status=status.HTTP_400_BAD_REQUEST)
 
-# fashion_store/api/views.py
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
-from google.oauth2 import id_token as google_id_token
-from google.auth.transport import requests as google_requests
-from django.contrib.auth import get_user_model
-from django.conf import settings
-from django.http import JsonResponse
-from django.core.exceptions import ValidationError
-from django.utils import timezone
-from datetime import timedelta
-import secrets
 
-from oauth2_provider.models import Application, AccessToken, RefreshToken
-from django.contrib.auth.models import Permission
 
-from api.models import Customer
-
+# Google OAuth configuration
 User = get_user_model()
 GOOGLE_CLIENT_ID = getattr(settings, 'GOOGLE_CLIENT_ID', None)
 
@@ -915,59 +889,44 @@ GOOGLE_CLIENT_ID = getattr(settings, 'GOOGLE_CLIENT_ID', None)
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def google_login(request):
+    """Google OAuth login endpoint."""
     try:
-        print(f"Google login request data: {request.data}")
-        
         id_token = request.data.get('id_token')
         if not id_token:
-            print("Missing id_token")
             return JsonResponse({'detail': 'Missing id_token'}, status=400)
 
-        print(f"ID token received: {id_token[:50]}...")
-
-        # Verify token với Google
+        # Verify token with Google
         try:
-            print("Verifying Google token...")
             info = google_id_token.verify_oauth2_token(
                 id_token,
                 google_requests.Request(),
                 GOOGLE_CLIENT_ID
             )
-            print(f"Token verified successfully: {info}")
         except ValueError as ve:
-            print(f"Token verification failed: {str(ve)}")
+            logger.warning(f"Google token verification failed: {str(ve)}")
             return JsonResponse({'detail': f'Invalid Google token: {str(ve)}'}, status=400)
 
-        # Validate claims cơ bản
-        print("Validating token claims...")
+        # Validate token claims
         validate_token_claims(info)
 
-        # Tạo hoặc cập nhật user
-        print("Creating/updating user...")
+        # Create or update user
         user = create_or_update_user(info)
-        print(f"User created/updated: {user.id}, {user.email}")
+        logger.info(f"User processed for Google login: {user.id}, {user.email}")
 
-        # Đảm bảo Customer profile tồn tại
-        print("Ensuring customer profile...")
+        # Ensure Customer profile exists
         ensure_customer_profile(user)
-        print("Customer profile ensured")
 
-        # Tạo access/refresh token (DOT)
-        print("Creating OAuth tokens...")
+        # Create OAuth tokens
         tokens = create_oauth_tokens(user)
-        print(f"Tokens created: {tokens}")
 
         return JsonResponse(tokens, status=200)
     except Exception as e:
-        print(f"Google login error: {str(e)}")
-        print(f"Error type: {type(e)}")
-        import traceback
-        print(f"Traceback: {traceback.format_exc()}")
+        logger.error(f"Google login error: {str(e)}", exc_info=True)
         return JsonResponse({'detail': str(e)}, status=400)
 
 
 def validate_token_claims(info):
-    """Validate các claims trong Google token"""
+    """Validate Google token claims."""
     aud = info.get('aud') or info.get('audience')
     if not aud or aud != GOOGLE_CLIENT_ID:
         raise ValidationError('Token audience mismatch')
@@ -982,26 +941,23 @@ def validate_token_claims(info):
     if not info.get('email_verified'):
         raise ValidationError('Email not verified')
 
-    return True
-
 
 def create_or_update_user(info):
-    """Tạo hoặc cập nhật user từ Google info"""
+    """Create or update user from Google info."""
     email = info['email']
     given_name = info.get('given_name', '')
     family_name = info.get('family_name', '')
 
     try:
-        # Thử tìm user theo email trước
+        # Try to find existing user by email
         user = User.objects.get(email=email)
-        # User đã tồn tại, cập nhật thông tin
+        # Update existing user info
         user.first_name = given_name or user.first_name
         user.last_name = family_name or user.last_name
         user.save()
         return user
     except User.DoesNotExist:
-        # User chưa tồn tại, tạo mới
-        # Tạo username unique nếu email đã được dùng làm username
+        # Create new user
         username = email
         counter = 1
         while User.objects.filter(username=username).exists():
@@ -1019,15 +975,12 @@ def create_or_update_user(info):
 
 
 def ensure_customer_profile(user):
-    """Đảm bảo user có customer profile"""
+    """Ensure user has customer profile."""
     try:
-        # Thử lấy customer profile nếu đã tồn tại
+        # Try to get existing customer profile
         customer = Customer.objects.get(id=user.id)
     except Customer.DoesNotExist:
-        # Tạo customer profile mới bằng cách copy từ user
-        # Vì Customer kế thừa từ User, cần copy tất cả fields
-        from django.utils import timezone
-        
+        # Create new customer profile by copying from user
         customer = Customer(
             id=user.id,
             username=user.username,
@@ -1042,13 +995,12 @@ def ensure_customer_profile(user):
             password=user.password,
             phone='',
             point=0,
-            # Set thủ công created_at và updated_at
             created_at=user.created_at,
             updated_at=timezone.now()
         )
         customer.save()
 
-    # Gán quyền customer
+    # Assign customer permission
     try:
         customer_perm = Permission.objects.get(codename='customer')
         if not user.has_perm('api.customer'):
@@ -1061,7 +1013,7 @@ def ensure_customer_profile(user):
 
 
 def create_oauth_tokens(user):
-    """Tạo access token và refresh token"""
+    """Create access token and refresh token."""
     try:
         application = Application.objects.get(client_id=settings.CLIENT_ID)
     except Application.DoesNotExist:
@@ -1076,7 +1028,7 @@ def create_oauth_tokens(user):
     refresh_token = secrets.token_urlsafe(40)
     now = timezone.now()
 
-    # Lưu access token
+    # Create access token
     access_token_obj = AccessToken.objects.create(
         user=user,
         application=application,
@@ -1085,7 +1037,7 @@ def create_oauth_tokens(user):
         expires=now + timedelta(seconds=access_token_ttl)
     )
 
-    # Lưu refresh token
+    # Create refresh token
     RefreshToken.objects.create(
         user=user,
         application=application,

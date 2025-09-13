@@ -30,12 +30,8 @@ function SideBar() {
 	const fetchCategories = async () => {
 		setLoading(true);
 		try {
-			// Giả sử có 2 page, bạn có thể fetch song song:
-			const [result1, result2] = await Promise.all([
-				CategoryList.category(1),
-				CategoryList.category(2),
-			]);
-			setCategory([...(result1.results || []), ...(result2.results || [])]);
+			const result = await CategoryList.category();
+			setCategory(result.results || []);
 		} catch (error) {
 			console.log('Error fetching category:', error);
 		} finally {
