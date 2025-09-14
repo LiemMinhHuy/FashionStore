@@ -27,7 +27,7 @@ from rest_framework.views import APIView
 from api import serializers, paginators
 from api.models import (
     Product, Category, User, Cart, CartItem, Order, OrderDetail, 
-    Customer, Like, News, NewsComment, Address
+    Customer, Like, News, NewsComment, Address, Coupon, CustomerCoupon, CouponUsage
 )
 
 logger = logging.getLogger(__name__)
@@ -447,17 +447,48 @@ class OrderViewSet(viewsets.ViewSet, generics.ListCreateAPIView):
             customer = Customer.objects.get(username=user.username)
         except Customer.DoesNotExist:
             return Response({'error': 'Người dùng không phải là khách hàng'}, status=status.HTTP_400_BAD_REQUEST)
+        
         # Validate and resolve shipping address as Address instance
         shipping_address_id = request.data.get('shipping_address_id') or request.data.get('shippingAddressId')
         shipping_address_str = request.data.get('shipping_address')
         payment_method = request.data.get('payment_method', 'Cash')
+        coupon_code = request.data.get('coupon_code')  # New: coupon support
+        
         if payment_method not in [choice[0] for choice in Order.PAYMENT_METHOD_CHOICES]:
             return Response({'error': 'Phương thức thanh toán không hợp lệ'}, status=status.HTTP_400_BAD_REQUEST)
+        
         cart = Cart.objects.filter(user=customer).first()
         if not cart or not cart.items.exists():
             return Response({'error': 'Giỏ hàng không tồn tại hoặc trống'}, status=status.HTTP_400_BAD_REQUEST)
-        total_amount = sum(item.product.price * item.quantity for item in cart.items.all())
+        
+        # Calculate original total amount
+        original_total_amount = sum(item.product.price * item.quantity for item in cart.items.all())
+        total_amount = original_total_amount
+        discount_amount = Decimal('0')
+        applied_coupon = None
+        
+        # Apply coupon if provided
+        if coupon_code:
+            try:
+                coupon = Coupon.objects.get(code=coupon_code.upper(), is_active=True)
+                can_use, message = coupon.can_be_used_by_customer(customer, original_total_amount)
+                
+                if can_use:
+                    discount_amount = coupon.calculate_discount(original_total_amount)
+                    total_amount = original_total_amount - discount_amount
+                    applied_coupon = coupon
+                else:
+                    return Response({
+                        'error': f'Cannot use coupon: {message}'
+                    }, status=status.HTTP_400_BAD_REQUEST)
+                    
+            except Coupon.DoesNotExist:
+                return Response({
+                    'error': 'Invalid coupon code'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
         order_status = "Processing" if payment_method == "Cash" else "Pending"
+        
         # Resolve Address
         shipping_address_obj = None
         if shipping_address_id:
@@ -474,14 +505,20 @@ class OrderViewSet(viewsets.ViewSet, generics.ListCreateAPIView):
             if not shipping_address_obj:
                 return Response({'error': 'Thiếu địa chỉ giao hàng. Vui lòng chọn hoặc tạo địa chỉ.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        # Create order with coupon information
         order = Order.objects.create(
             user=customer,
             total_amount=total_amount,
+            original_amount=original_total_amount,
+            discount_amount=discount_amount,
+            coupon=applied_coupon,
             payment_method=payment_method,
             shipping_address=shipping_address_obj,
             created_at=timezone.localtime(),
             status=order_status
         )
+        
+        # Create order details
         for item in cart.items.all():
             OrderDetail.objects.create(
                 order=order,
@@ -489,6 +526,30 @@ class OrderViewSet(viewsets.ViewSet, generics.ListCreateAPIView):
                 quantity=item.quantity,
                 unit_price=item.product.price
             )
+        
+        # Apply coupon usage if coupon was used
+        if applied_coupon:
+            try:
+                # Create coupon usage record and update coupon usage count
+                CouponUsage.objects.create(
+                    coupon=applied_coupon,
+                    customer=customer,
+                    order=order,
+                    order_amount=original_total_amount,
+                    discount_amount=discount_amount
+                )
+                
+                # Update coupon usage count
+                applied_coupon.used_count += 1
+                applied_coupon.save()
+                
+            except Exception as e:
+                # If coupon application fails, we should rollback the order
+                order.delete()
+                return Response({
+                    'error': f'Failed to apply coupon: {str(e)}'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
         # Xử lý thanh toán PayPal
         if payment_method == 'PayPal':
             configure_paypal()
@@ -509,11 +570,28 @@ class OrderViewSet(viewsets.ViewSet, generics.ListCreateAPIView):
                 order.status = 'Pending'
                 order.save()
                 payment_url = next(link.href for link in payment.links if link.rel == "approval_url")
-                return Response({'payment_url': payment_url}, status=status.HTTP_200_OK)
+                return Response({
+                    'payment_url': payment_url,
+                    'order': serializers.OrderSerializer(order).data
+                }, status=status.HTTP_200_OK)
             else:
                 return Response({'error': 'Lỗi khi tạo thanh toán PayPal'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Clear cart after successful order creation
         cart.items.all().delete()
-        return Response(serializers.OrderSerializer(order).data, status=status.HTTP_201_CREATED)
+        
+        # Return order details with coupon information
+        response_data = serializers.OrderSerializer(order).data
+        if applied_coupon:
+            response_data['coupon_applied'] = {
+                'code': applied_coupon.code,
+                'name': applied_coupon.name,
+                'discount_amount': discount_amount,
+                'original_amount': original_total_amount,
+                'final_amount': total_amount
+            }
+        
+        return Response(response_data, status=status.HTTP_201_CREATED)
 
     @action(methods=['get'], detail=False, url_path='count')
     def get_total_orders(self, request):
@@ -1051,3 +1129,206 @@ def create_oauth_tokens(user):
         'expires_in': access_token_ttl,
         'refresh_token': refresh_token
     }
+
+
+# ========================
+# COUPON VIEWS
+# ========================
+class CouponViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing coupons"""
+    queryset = Coupon.objects.all().order_by('-created_at')
+    serializer_class = serializers.CouponSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_permissions(self):
+        """Set permissions based on action"""
+        if self.action in ['list', 'retrieve', 'validate_coupon', 'my_coupons']:
+            return [permissions.IsAuthenticated()]
+        elif self.action in ['create', 'update', 'partial_update', 'destroy']:
+            # Only staff can create/update/delete coupons
+            return [permissions.IsAuthenticated(), permissions.IsAdminUser()]
+        return super().get_permissions()
+    
+    def get_queryset(self):
+        """Filter coupons based on user role"""
+        user = self.request.user
+        if user.is_staff:
+            # Staff can see all coupons
+            return Coupon.objects.all().order_by('-created_at')
+        else:
+            # Customers can only see active public coupons and their assigned private coupons
+            try:
+                customer = Customer.objects.get(id=user.id)
+                public_coupons = Coupon.objects.filter(
+                    is_active=True,
+                    coupon_type__in=['public', 'first_time', 'loyalty']
+                )
+                private_coupons = Coupon.objects.filter(
+                    is_active=True,
+                    coupon_type='private',
+                    assigned_customers__customer=customer
+                )
+                return (public_coupons | private_coupons).distinct().order_by('-created_at')
+            except Customer.DoesNotExist:
+                # If user is not a customer, return only public coupons
+                return Coupon.objects.filter(
+                    is_active=True,
+                    coupon_type='public'
+                ).order_by('-created_at')
+    
+    @action(detail=False, methods=['post'], url_path='validate')
+    def validate_coupon(self, request):
+        """Validate a coupon for a specific order amount"""
+        serializer = serializers.CouponValidationSerializer(data=request.data)
+        if serializer.is_valid():
+            code = serializer.validated_data['code']
+            order_amount = serializer.validated_data['order_amount']
+            
+            try:
+                coupon = Coupon.objects.get(code=code, is_active=True)
+                customer = Customer.objects.get(id=request.user.id)
+                
+                can_use, message = coupon.can_be_used_by_customer(customer, order_amount)
+                
+                if can_use:
+                    discount_amount = coupon.calculate_discount(order_amount)
+                    return Response({
+                        'valid': True,
+                        'message': message,
+                        'coupon': serializers.CouponSerializer(coupon).data,
+                        'discount_amount': discount_amount,
+                        'final_amount': order_amount - discount_amount
+                    })
+                else:
+                    return Response({
+                        'valid': False,
+                        'message': message
+                    })
+                    
+            except Coupon.DoesNotExist:
+                return Response({
+                    'valid': False,
+                    'message': 'Invalid coupon code'
+                })
+            except Customer.DoesNotExist:
+                return Response({
+                    'valid': False,
+                    'message': 'User is not a customer'
+                })
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['get'], url_path='my-coupons')
+    def my_coupons(self, request):
+        """Get coupons available to the current customer"""
+        try:
+            customer = Customer.objects.get(id=request.user.id)
+            
+            # Get public coupons
+            public_coupons = Coupon.objects.filter(
+                is_active=True,
+                coupon_type__in=['public', 'first_time', 'loyalty']
+            )
+            
+            # Get private coupons assigned to this customer
+            private_coupons = Coupon.objects.filter(
+                is_active=True,
+                coupon_type='private',
+                assigned_customers__customer=customer
+            )
+            
+            # Combine and remove duplicates
+            available_coupons = (public_coupons | private_coupons).distinct()
+            
+            # Filter based on first-time customer logic
+            filtered_coupons = []
+            for coupon in available_coupons:
+                can_use, _ = coupon.can_be_used_by_customer(customer)
+                if can_use:
+                    filtered_coupons.append(coupon)
+            
+            serializer = serializers.CustomerAvailableCouponsSerializer(
+                filtered_coupons, 
+                many=True, 
+                context={'request': request}
+            )
+            return Response(serializer.data)
+            
+        except Customer.DoesNotExist:
+            return Response({
+                'error': 'User is not a customer'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=['post'], url_path='assign-to-customer')
+    def assign_to_customer(self, request, pk=None):
+        """Assign a private coupon to a customer (admin only)"""
+        if not request.user.is_staff:
+            return Response({
+                'error': 'Only staff can assign coupons to customers'
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        coupon = self.get_object()
+        customer_id = request.data.get('customer_id')
+        
+        if not customer_id:
+            return Response({
+                'error': 'customer_id is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            customer = Customer.objects.get(id=customer_id)
+            
+            # Check if already assigned
+            if CustomerCoupon.objects.filter(customer=customer, coupon=coupon).exists():
+                return Response({
+                    'error': 'Coupon already assigned to this customer'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create assignment
+            assignment = CustomerCoupon.objects.create(
+                customer=customer,
+                coupon=coupon,
+                assigned_by=request.user
+            )
+            
+            return Response({
+                'message': f'Coupon {coupon.code} assigned to {customer.get_full_name()}',
+                'assignment': serializers.CustomerCouponSerializer(assignment).data
+            })
+            
+        except Customer.DoesNotExist:
+            return Response({
+                'error': 'Customer not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class CouponUsageViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for viewing coupon usage history"""
+    queryset = CouponUsage.objects.all().order_by('-used_at')
+    serializer_class = serializers.CouponUsageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter usage based on user role"""
+        user = self.request.user
+        if user.is_staff:
+            # Staff can see all usage
+            return CouponUsage.objects.all().order_by('-used_at')
+        else:
+            # Customers can only see their own usage
+            try:
+                customer = Customer.objects.get(id=user.id)
+                return CouponUsage.objects.filter(customer=customer).order_by('-used_at')
+            except Customer.DoesNotExist:
+                return CouponUsage.objects.none()
+
+
+class CustomerCouponViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing customer coupon assignments"""
+    queryset = CustomerCoupon.objects.all().order_by('-assigned_at')
+    serializer_class = serializers.CustomerCouponSerializer
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+    
+    def perform_create(self, serializer):
+        """Set the assigned_by field to current user"""
+        serializer.save(assigned_by=self.request.user)

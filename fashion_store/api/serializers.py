@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from api.models import Product, Category, User, Customer, Staff, Cart, CartItem, OrderDetail, Order, Like, News, NewsComment, Address, ProductImage
+from api.models import Product, Category, User, Customer, Staff, Cart, CartItem, OrderDetail, Order, Like, News, NewsComment, Address, ProductImage, Coupon, CustomerCoupon, CouponUsage
 from django.contrib.auth.models import Permission
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -192,11 +192,17 @@ class OrderSerializer(serializers.ModelSerializer):
     order_details = OrderDetailSerializer(many=True, read_only=True)
     customer = UserSerializer(source='user', read_only=True)  # Sử dụng source để lấy thông tin từ trường 'user'
     can_claim_points = serializers.SerializerMethodField()
+    coupon_code = serializers.CharField(source='coupon.code', read_only=True)
+    coupon_name = serializers.CharField(source='coupon.name', read_only=True)
 
     class Meta:
         model = Order
         fields = '__all__'
-        read_only_fields = ['user', 'total_amount', 'created_at', 'updated_at', 'order_details', 'customer', "status", 'points_earned', 'points_claimed']
+        read_only_fields = [
+            'user', 'total_amount', 'original_amount', 'discount_amount', 
+            'created_at', 'updated_at', 'order_details', 'customer', 
+            'status', 'points_earned', 'points_claimed', 'coupon_code', 'coupon_name'
+        ]
     
     def get_can_claim_points(self, obj):
         return obj.can_claim_points()
@@ -276,3 +282,146 @@ class CustomerAddressSerializer(serializers.ModelSerializer):
         if default_addr:
             return AddressSerializer(default_addr).data
         return None
+
+
+# Coupon Serializers
+class CouponSerializer(serializers.ModelSerializer):
+    """Serializer for Coupon model"""
+    is_valid = serializers.ReadOnlyField()
+    is_expired = serializers.ReadOnlyField()
+    usage_remaining = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = Coupon
+        fields = [
+            'id', 'code', 'name', 'description', 'discount_type', 'discount_value',
+            'max_discount_amount', 'min_order_amount', 'usage_limit', 'usage_limit_per_customer',
+            'valid_from', 'valid_until', 'coupon_type', 'is_active', 'used_count',
+            'is_valid', 'is_expired', 'usage_remaining', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['used_count', 'created_at', 'updated_at']
+    
+    def validate(self, data):
+        """Validate coupon data"""
+        # Check date validity
+        if data.get('valid_from') and data.get('valid_until'):
+            if data['valid_from'] >= data['valid_until']:
+                raise serializers.ValidationError("Valid from date must be before valid until date")
+        
+        # Check discount value based on type
+        discount_type = data.get('discount_type')
+        discount_value = data.get('discount_value')
+        
+        if discount_type == 'percentage' and discount_value:
+            if discount_value < 0 or discount_value > 100:
+                raise serializers.ValidationError("Percentage discount must be between 0 and 100")
+        
+        if discount_type == 'fixed_amount' and discount_value and discount_value < 0:
+            raise serializers.ValidationError("Fixed amount discount must be positive")
+        
+        return data
+
+
+class CouponUsageSerializer(serializers.ModelSerializer):
+    """Serializer for CouponUsage model"""
+    coupon_code = serializers.CharField(source='coupon.code', read_only=True)
+    coupon_name = serializers.CharField(source='coupon.name', read_only=True)
+    customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
+    
+    class Meta:
+        model = CouponUsage
+        fields = [
+            'id', 'coupon', 'coupon_code', 'coupon_name', 'customer', 'customer_name',
+            'order', 'order_amount', 'discount_amount', 'used_at'
+        ]
+        read_only_fields = ['used_at']
+
+
+class CustomerCouponSerializer(serializers.ModelSerializer):
+    """Serializer for CustomerCoupon model"""
+    coupon = CouponSerializer(read_only=True)
+    coupon_id = serializers.PrimaryKeyRelatedField(
+        queryset=Coupon.objects.filter(is_active=True),
+        source='coupon',
+        write_only=True
+    )
+    customer_name = serializers.CharField(source='customer.get_full_name', read_only=True)
+    assigned_by_name = serializers.CharField(source='assigned_by.get_full_name', read_only=True)
+    
+    class Meta:
+        model = CustomerCoupon
+        fields = [
+            'id', 'customer', 'customer_name', 'coupon', 'coupon_id', 
+            'assigned_by', 'assigned_by_name', 'assigned_at'
+        ]
+        read_only_fields = ['assigned_at']
+
+
+class CouponValidationSerializer(serializers.Serializer):
+    """Serializer for coupon validation requests"""
+    code = serializers.CharField(max_length=50)
+    order_amount = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=0)
+    
+    def validate_code(self, value):
+        """Validate that the coupon code exists"""
+        try:
+            coupon = Coupon.objects.get(code=value.upper())
+            if not coupon.is_active:
+                raise serializers.ValidationError("This coupon is not active")
+            return value.upper()
+        except Coupon.DoesNotExist:
+            raise serializers.ValidationError("Invalid coupon code")
+
+
+class ApplyCouponSerializer(serializers.Serializer):
+    """Serializer for applying coupon to order"""
+    code = serializers.CharField(max_length=50)
+    
+    def validate_code(self, value):
+        """Validate that the coupon code exists and is active"""
+        try:
+            coupon = Coupon.objects.get(code=value.upper(), is_active=True)
+            return value.upper()
+        except Coupon.DoesNotExist:
+            raise serializers.ValidationError("Invalid or inactive coupon code")
+
+
+class CustomerAvailableCouponsSerializer(serializers.ModelSerializer):
+    """Serializer for coupons available to a specific customer"""
+    can_use = serializers.SerializerMethodField()
+    discount_preview = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Coupon
+        fields = [
+            'id', 'code', 'name', 'description', 'discount_type', 'discount_value',
+            'max_discount_amount', 'min_order_amount', 'valid_until', 'can_use', 'discount_preview'
+        ]
+    
+    def get_can_use(self, obj):
+        """Check if customer can use this coupon"""
+        request = self.context.get('request')
+        if request and hasattr(request, 'user') and request.user.is_authenticated:
+            try:
+                customer = Customer.objects.get(id=request.user.id)
+                can_use, message = obj.can_be_used_by_customer(customer)
+                return {'can_use': can_use, 'message': message}
+            except Customer.DoesNotExist:
+                return {'can_use': False, 'message': 'User is not a customer'}
+        return {'can_use': False, 'message': 'Authentication required'}
+    
+    def get_discount_preview(self, obj):
+        """Get discount preview for different order amounts"""
+        previews = []
+        sample_amounts = [100000, 200000, 500000, 1000000]  # Sample amounts in VND
+        
+        for amount in sample_amounts:
+            if amount >= obj.min_order_amount:
+                discount = obj.calculate_discount(amount)
+                previews.append({
+                    'order_amount': amount,
+                    'discount_amount': discount,
+                    'final_amount': amount - discount
+                })
+        
+        return previews

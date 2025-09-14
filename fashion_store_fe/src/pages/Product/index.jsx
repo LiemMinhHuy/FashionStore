@@ -7,7 +7,7 @@ import { isCloseToBottom } from '~/utils/utils';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import throttle from 'lodash.throttle';
-import { FunnelIcon, Bars3BottomRightIcon, ArrowDownIcon, ArrowUpIcon } from '@heroicons/react/24/outline';
+import { Bars3BottomRightIcon, ArrowDownIcon, ArrowUpIcon } from '@heroicons/react/24/outline';
 
 const cx = classNames.bind(styles);
 
@@ -173,7 +173,11 @@ function Products() {
 
                                         <div className={cx('product-text')}>
                                             <h3>{product.name}</h3>
-                                            <p>${product.price}</p>
+                                            <p>
+                                                ${product.price ? parseFloat(product.price).toFixed(0) : '0'}
+
+                                            </p>
+
                                         </div>
                                     </Link>
                                 </div>

@@ -36,8 +36,6 @@ function Account({ children }) {
             setActive('Address');
         } else if (path === '/coupon') {
             setActive('Coupon');
-        } else if (path === '/cards') {
-            setActive('Cards');
         }
         // Có thể thêm các route khác sau
     }, [location.pathname]);
@@ -47,7 +45,6 @@ function Account({ children }) {
         { key: 'Profile', label: 'Profile', icon: UserCircleIcon },
         { key: 'Address', label: 'Address', icon: MapPinIcon },
         { key: 'Coupon', label: 'Coupon', icon: TicketIcon },
-        { key: 'Cards', label: 'Cards', icon: CreditCardIcon },
         { key: 'Log Out', label: 'Log Out', icon: ArrowLeftStartOnRectangleIcon },
     ];
 

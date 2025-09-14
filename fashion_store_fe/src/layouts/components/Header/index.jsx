@@ -48,7 +48,6 @@ function Header() {
     const dispatch = useContext(MyDispatchContext); // Lấy dispatch để xử lý logout
     const { cartItems } = useContext(CartContext); // Sử dụng CartContext
     const [showCart, setShowCart] = useState(false);
-    console.log('url avatar user:', currentUser?.avatar);
 
     // Hàm xử lý khi người dùng bấm nút Logout
     const handleLogout = () => {

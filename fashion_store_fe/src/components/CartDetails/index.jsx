@@ -70,7 +70,7 @@ const CartDetail = () => {
                                         className={cx('quantity-input')}
                                     />
                                     <div className={cx('item-price')}>
-                                        {item.total_price ? parseFloat(item.total_price).toFixed(2) : '0.00'}VND
+                                        ${item.total_price ? parseFloat(item.total_price).toFixed(0) : '0'}
                                     </div>
                                     <button onClick={() => handleRemoveItem(item.id)} className={cx('remove-item')}>
                                         <FontAwesomeIcon icon={faTrashCan} />
@@ -83,7 +83,7 @@ const CartDetail = () => {
             )}
 
             <div className={cx('cart-summary')}>
-                <h4>Estimated Total: {total.toFixed(2)} VND</h4>
+                <h4>Total: ${total.toFixed(0)}</h4>
                 <button className={cx('checkout-btn')} onClick={handlecheckout}>
                     Proceed to Checkout
                 </button>

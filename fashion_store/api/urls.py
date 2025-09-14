@@ -13,6 +13,9 @@ router.register('orders', views.OrderViewSet, basename='orders')
 router.register('likes', views.LikeViewSet, basename='likes')
 router.register('news', views.NewsViewSet, basename='news')
 router.register('addresses', views.AddressViewSet, basename='addresses')
+router.register('coupons', views.CouponViewSet, basename='coupons')
+router.register('coupon-usage', views.CouponUsageViewSet, basename='coupon-usage')
+router.register('customer-coupons', views.CustomerCouponViewSet, basename='customer-coupons')
 
 urlpatterns = [
     # Đường dẫn cho carts (truy xuất giỏ hàng)

@@ -132,7 +132,7 @@ function ProductDetail() {
 				<div className={cx('product-info-container')}>
 					<h2 className={cx('product-name')}>{product.name}</h2>
 					<p className={cx('product-description')}>{product.description}</p>
-					<p className={cx('product-price')}>$ {product.price}</p>
+					<p className={cx('product-price')}>${product.price}</p>
 					<div className={cx('product-quantity')}>
 						<span className={cx('product-quantity-text')}>Quantity:</span>
 						<input type="number" min="1" max="100" value={quantity} onChange={handleQuantityChange} />

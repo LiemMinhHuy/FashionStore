@@ -6,7 +6,6 @@ import Login from '~/pages/Login';
 import Profile from '../pages/Profile';
 import Address from '../pages/Address';
 import Coupon from '../pages/Coupon';
-import Cards from '../pages/Cards';
 import Upload from '../pages/Upload';
 import Product from '../pages/Product';
 import ProductDetailPage from '~/pages/ProductDetail';
@@ -35,7 +34,6 @@ const publicRoutes = [
     { path: '/profile', component: Profile, layout: Account },
     { path: '/address', component: Address, layout: Account },
     { path: '/coupon', component: Coupon, layout: Account },
-    { path: '/cards', component: Cards, layout: Account },
     { path: '/upload', component: Upload, layout: HeaderOnly },
     { path: '/products/category/:categoryId', component: Product },
     { path: '/products/:productId', component: ProductDetailPage, layout: HeaderOnly },

@@ -86,7 +86,7 @@ const Cart = ({ onClose }) => {
                                     />
                                     <div style={{ width: '80px' }}>
                                         <h5 className={cx('mb-0')}>
-                                            {item.total_price ? parseFloat(item.total_price).toFixed(2) : '0.00'}VND
+                                            ${item.total_price ? parseFloat(item.total_price).toFixed(0) : '0'}
                                         </h5>
                                     </div>
                                     <button onClick={() => handleRemoveItem(item.id)} className={cx('btn-trash')}>

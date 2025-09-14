@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     Customer, Staff, Category, Product, Cart, CartItem,
-    Order, OrderDetail, News, NewsComment, Like
+    Order, OrderDetail, News, NewsComment, Like, Address,
+    Coupon, CustomerCoupon, CouponUsage
 )
 from django.template.response import TemplateResponse
 from django.db.models import Count
@@ -151,6 +152,154 @@ class LikeAdmin(admin.ModelAdmin):
     readonly_fields = ['created_at', 'updated_at']
 
 
+# Address Admin
+@admin.register(Address)
+class AddressAdmin(admin.ModelAdmin):
+    list_display = ['id', 'customer', 'full_name', 'phone', 'province', 'district', 'ward', 'is_default', 'created_at']
+    search_fields = ['customer__username', 'full_name', 'phone', 'province', 'district']
+    list_filter = ['province', 'district', 'is_default', 'is_billing', 'is_shipping', 'created_at']
+    readonly_fields = ['created_at', 'updated_at', 'full_address', 'short_address', 'administrative_address']
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('customer', 'full_name', 'phone')
+        }),
+        ('Address Details', {
+            'fields': ('address_line1', 'address_line2', 'province', 'district', 'ward', 'postal_code', 'country')
+        }),
+        ('Address Types', {
+            'fields': ('is_default', 'is_billing', 'is_shipping')
+        }),
+        ('Additional Info', {
+            'fields': ('note', 'full_address', 'short_address', 'administrative_address')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at')
+        })
+    )
+
+
+# Coupon Usage Inline for Coupon Admin
+class CouponUsageInline(admin.TabularInline):
+    model = CouponUsage
+    readonly_fields = ['customer', 'order', 'order_amount', 'discount_amount', 'used_at']
+    extra = 0
+    can_delete = False
+
+
+# Customer Coupon Inline for Coupon Admin
+class CustomerCouponInline(admin.TabularInline):
+    model = CustomerCoupon
+    readonly_fields = ['assigned_at']
+    extra = 1
+
+
+# Coupon Admin
+@admin.register(Coupon)
+class CouponAdmin(admin.ModelAdmin):
+    list_display = [
+        'code', 'name', 'discount_type', 'discount_value', 'coupon_type', 
+        'is_active', 'used_count', 'usage_limit', 'valid_from', 'valid_until'
+    ]
+    search_fields = ['code', 'name', 'description']
+    list_filter = [
+        'discount_type', 'coupon_type', 'is_active', 'valid_from', 'valid_until', 'created_at'
+    ]
+    readonly_fields = ['used_count', 'created_at', 'updated_at', 'is_valid', 'is_expired', 'usage_remaining']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('code', 'name', 'description', 'coupon_type')
+        }),
+        ('Discount Settings', {
+            'fields': ('discount_type', 'discount_value', 'max_discount_amount')
+        }),
+        ('Usage Conditions', {
+            'fields': ('min_order_amount', 'usage_limit', 'usage_limit_per_customer')
+        }),
+        ('Validity Period', {
+            'fields': ('valid_from', 'valid_until')
+        }),
+        ('Status', {
+            'fields': ('is_active',)
+        }),
+        ('Statistics', {
+            'fields': ('used_count', 'usage_remaining', 'is_valid', 'is_expired'),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+    
+    inlines = [CustomerCouponInline, CouponUsageInline]
+    
+    actions = ['mark_as_active', 'mark_as_inactive', 'extend_validity']
+    
+    def mark_as_active(self, request, queryset):
+        count = queryset.update(is_active=True)
+        self.message_user(request, f'{count} coupons marked as active.')
+    mark_as_active.short_description = "Mark selected coupons as active"
+    
+    def mark_as_inactive(self, request, queryset):
+        count = queryset.update(is_active=False)
+        self.message_user(request, f'{count} coupons marked as inactive.')
+    mark_as_inactive.short_description = "Mark selected coupons as inactive"
+    
+    def extend_validity(self, request, queryset):
+        from datetime import timedelta
+        from django.utils import timezone
+        
+        count = 0
+        for coupon in queryset:
+            # Extend validity by 30 days
+            coupon.valid_until = coupon.valid_until + timedelta(days=30)
+            coupon.save()
+            count += 1
+        
+        self.message_user(request, f'{count} coupons validity extended by 30 days.')
+    extend_validity.short_description = "Extend validity by 30 days"
+
+
+# Customer Coupon Admin
+@admin.register(CustomerCoupon)
+class CustomerCouponAdmin(admin.ModelAdmin):
+    list_display = ['customer', 'coupon', 'assigned_by', 'assigned_at']
+    search_fields = ['customer__username', 'customer__email', 'coupon__code', 'coupon__name']
+    list_filter = ['assigned_at', 'coupon__coupon_type']
+    readonly_fields = ['assigned_at']
+    
+    fieldsets = (
+        ('Assignment Details', {
+            'fields': ('customer', 'coupon', 'assigned_by')
+        }),
+        ('Timestamps', {
+            'fields': ('assigned_at',)
+        })
+    )
+
+
+# Coupon Usage Admin
+@admin.register(CouponUsage)
+class CouponUsageAdmin(admin.ModelAdmin):
+    list_display = ['coupon', 'customer', 'order_amount', 'discount_amount', 'used_at']
+    search_fields = ['coupon__code', 'customer__username', 'customer__email']
+    list_filter = ['used_at', 'coupon__discount_type']
+    readonly_fields = ['used_at']
+    
+    fieldsets = (
+        ('Usage Details', {
+            'fields': ('coupon', 'customer', 'order')
+        }),
+        ('Financial Details', {
+            'fields': ('order_amount', 'discount_amount')
+        }),
+        ('Timestamps', {
+            'fields': ('used_at',)
+        })
+    )
+
+
 # Register the custom admin site
 admin_site.register(Customer, CustomerAdmin)
 admin_site.register(Staff, StaffAdmin)
@@ -161,3 +310,7 @@ admin_site.register(Order, OrderAdmin)
 admin_site.register(News, NewsAdmin)
 admin_site.register(NewsComment, NewsCommentAdmin)
 admin_site.register(Like, LikeAdmin)
+admin_site.register(Address, AddressAdmin)
+admin_site.register(Coupon, CouponAdmin)
+admin_site.register(CustomerCoupon, CustomerCouponAdmin)
+admin_site.register(CouponUsage, CouponUsageAdmin)
