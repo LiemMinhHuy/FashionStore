@@ -14,6 +14,8 @@ import {
     MapPinIcon,
 } from '@heroicons/react/24/outline';
 import { useState, useEffect } from 'react';
+import { logout } from '~/api/loginService';
+import { resetAuthApi } from '~/utils/request';
 
 const cx = classNames.bind(styles);
 
@@ -71,8 +73,8 @@ function Account({ children }) {
                 break;
             case 'Log Out':
                 // Xử lý logout
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('user_data');
+                logout();
+                resetAuthApi();
                 navigate('/login');
                 break;
             default:

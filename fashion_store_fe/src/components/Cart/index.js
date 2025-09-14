@@ -65,9 +65,9 @@ const Cart = ({ onClose }) => {
                         <div className={cx('cart')} key={item.id}>
                             <div className={cx('cart-body')}>
                                 <div className={cx('cart-item')}>
-                                    {item.product && item.product.image ? (
+                                    {item.product && item.product.thumbnail ? (
                                         <img
-                                            src={item.product.image.replace('/media/https%3A', 'https://')}
+                                            src={item.product.thumbnail.replace('/media/https%3A', 'https://')}
                                             className={cx('img-fluid')}
                                             alt={item.product.name}
                                         />

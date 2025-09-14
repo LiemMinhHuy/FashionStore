@@ -31,6 +31,10 @@ export default function Login() {
 			console.log('Login successful:', response);
 
 			localStorage.setItem('access_token', response.access_token);
+			// Store refresh token if available
+			if (response.refresh_token) {
+				localStorage.setItem('refresh_token', response.refresh_token);
+			}
 
 			setTimeout(async () => {
 				let user = await authApi(response.access_token).get('users/current-user/');
@@ -131,6 +135,10 @@ export default function Login() {
 							const data = await apiPost('auth/google/', { id_token });
 							console.log('Backend response:', data);
 							localStorage.setItem('access_token', data.access_token);
+							// Store refresh token if available
+							if (data.refresh_token) {
+								localStorage.setItem('refresh_token', data.refresh_token);
+							}
 							const user = await authApi(data.access_token).get('users/current-user/');
 							console.log('User data:', user.data);
 							dispatch({ type: 'login', payload: user.data });

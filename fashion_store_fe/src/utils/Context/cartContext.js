@@ -1,6 +1,6 @@
 // utils/context/CartContext.js
 import React, { createContext, useState, useEffect, useContext } from 'react';
-import { authApi } from '~/utils/request';
+import { getAuthApi } from '~/utils/request';
 import { MyUserContext } from './context';
 
 export const CartContext = createContext();
@@ -15,7 +15,7 @@ export const CartProvider = ({ children }) => {
         if (currentUser) {
             const fetchCart = async () => {
                 try {
-                    const response = await authApi(localStorage.getItem('access_token')).get('/carts/');
+                    const response = await getAuthApi().get('/carts/');
                     setCartItems(response.data.items);
                 } catch (err) {
                     console.error('Error fetching cart:', err);
@@ -34,13 +34,13 @@ export const CartProvider = ({ children }) => {
 
     const addToCart = async (items, quantity) => {
         try {
-            const response = await authApi(localStorage.getItem('access_token')).post('/carts/add-cart/', {
+            const response = await getAuthApi().post('/carts/add-cart/', {
                 items,
                 quantity,
             });
 
             // Gọi lại API để lấy thông tin chi tiết của giỏ hàng sau khi thêm sản phẩm
-            const updatedCart = await authApi(localStorage.getItem('access_token')).get('/carts/');
+            const updatedCart = await getAuthApi().get('/carts/');
 
             // Cập nhật cartItems với dữ liệu mới
             setCartItems(updatedCart.data.items);
@@ -54,7 +54,7 @@ export const CartProvider = ({ children }) => {
 
     const updateCartItem = async (itemId, quantity) => {
         try {
-            const response = await authApi(localStorage.getItem('access_token')).patch(
+            const response = await getAuthApi().patch(
                 `/carts/update-cart-item/${itemId}/`,
                 { quantity },
             );
@@ -78,7 +78,7 @@ export const CartProvider = ({ children }) => {
 
     const removeCartItem = async (itemId) => {
         try {
-            await authApi(localStorage.getItem('access_token')).delete(`/carts/remove/${itemId}/`);
+            await getAuthApi().delete(`/carts/remove/${itemId}/`);
             setCartItems((prevItems) => prevItems.filter((item) => item.id !== itemId));
         } catch (err) {
             console.error('Error removing cart item:', err);
@@ -88,7 +88,7 @@ export const CartProvider = ({ children }) => {
 
     const clearCart = async () => {
         try {
-            await authApi(localStorage.getItem('access_token')).delete('/carts/clear/');
+            await getAuthApi().delete('/carts/clear/');
             setCartItems([]);
         } catch (err) {
             console.error('Error clearing cart:', err);

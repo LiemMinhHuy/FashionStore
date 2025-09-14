@@ -1,5 +1,5 @@
 // Header.js
-import React, { useContext, useState } from 'react';
+import React, { useContext } from 'react';
 import classNames from 'classnames/bind';
 import styles from './Header.module.scss';
 import images from '../../../../assets/images';
@@ -10,6 +10,8 @@ import Tippy from '@tippyjs/react';
 import { Link } from 'react-router-dom';
 import { MyUserContext, MyDispatchContext } from '~/utils/Context/context'; // Import context của người dùng và dispatch
 import Menu from '~/components/Popper/Menu';
+import { logout } from '~/api/loginService';
+import { resetAuthApi } from '~/utils/request';
 
 const cx = classNames.bind(styles);
 
@@ -32,9 +34,9 @@ function Header() {
     // Hàm xử lý khi người dùng bấm nút Logout
     const handleLogout = () => {
         console.log('Logout button clicked');
-        // Xóa thông tin đăng nhập khỏi localStorage
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user_data');
+        // Use the logout function from loginService
+        logout();
+        resetAuthApi();
 
         // Dispatch action để cập nhật lại trạng thái người dùng trong context
         dispatch({

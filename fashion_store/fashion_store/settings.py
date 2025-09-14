@@ -206,17 +206,6 @@ AUTHENTICATION_BACKENDS = [
     # 'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
-# SOCIALACCOUNT_PROVIDERS = {
-#     'google': {
-#         'APP': {
-#             'client_id': os.getenv('GOOGLE_CLIENT_ID'),
-#             'secret': os.getenv('GOOGLE_CLIENT_SECRET'),
-#             'key': '',
-#         }
-#     }
-# } 
-
-
 # OAuth2 Provider Configuration
 OAUTH2_PROVIDER = {
     'ACCESS_TOKEN_EXPIRE_SECONDS': 36000,  # 10 giờ

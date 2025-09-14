@@ -136,26 +136,26 @@ class CartSerializer(serializers.ModelSerializer):
 
 class OrderDetailSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField()  # Thêm trường product_name
-    image = serializers.SerializerMethodField()  # Thêm trường image
+    thumbnail = serializers.SerializerMethodField()  # Thêm trường image
     class Meta:
         model = OrderDetail
-        fields = ['id', 'product', 'product_name', 'image', 'quantity', 'unit_price', 'totalPrice', 'order', 'created_at', 'updated_at', 'is_active']
+        fields = ['id', 'product', 'product_name', 'thumbnail', 'quantity', 'unit_price', 'totalPrice', 'order', 'created_at', 'updated_at', 'is_active']
 
     def get_product_name(self, obj):
         return obj.product.name if obj.product else 'Unknown Product'
         
-    def get_image(self, obj):
+    def get_thumbnail(self, obj):
         import urllib.parse
         
-        if obj.product and obj.product.image:
+        if obj.product and obj.product.thumbnail:
             image_url = None
             
             # Nếu là Cloudinary URL string
-            if isinstance(obj.product.image, str):
-                image_url = obj.product.image
+            if isinstance(obj.product.thumbnail, str):
+                image_url = obj.product.thumbnail
             # Nếu là FileField/ImageField
-            elif hasattr(obj.product.image, 'url'):
-                image_url = obj.product.image.url
+            elif hasattr(obj.product.thumbnail, 'url'):
+                image_url = obj.product.thumbnail.url
 
             if image_url:
                 # Xử lý URL Cloudinary
@@ -184,7 +184,8 @@ class OrderDetailSerializer(serializers.ModelSerializer):
                         return image_url
                 return image_url
             
-            return str(obj.product.image)
+            # Fallback to string representation
+            return str(obj.product.thumbnail)
         return None
 
 class OrderSerializer(serializers.ModelSerializer):

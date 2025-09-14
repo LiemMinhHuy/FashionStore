@@ -49,14 +49,14 @@ const CartDetail = () => {
                 <div className={cx('cart-list')}>
                     {cartItems.map((item) => (
                         <div className={cx('cart-item')} key={item.id}>
-                            {item.product && item.product.image ? (
+                            {item.product && item.product.thumbnail ? (
                                 <img
-                                    src={item.product.image.replace('/media/https%3A', 'https://')}
+                                    src={item.product.thumbnail.replace('/media/https%3A', 'https://')}
                                     className={cx('product-image')}
                                     alt={item.product.name}
                                 />
                             ) : (
-                                <div className={cx('no-image')}>No Image</div>
+                                <div className={cx('no-thumbnail')}>No thumbnail</div>
                             )}
                             <div className={cx('item-details')}>
                                 <h5>{item.product ? item.product.name : 'Unknown Product'}</h5>

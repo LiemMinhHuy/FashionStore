@@ -279,8 +279,8 @@ CATEGORY_PRODUCTS = {
             "thumbnail": "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525582/fashion_store/product23/thumbnail.png",
             "images": [
                 "https://res.cloudinary.com/ddoebyozj/image/upload/v1757526014/fashion_store/product23/1.png",
-                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product223/2.png",
-                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product3/3.png"
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525502/fashion_store/product23/2.png",
+                "https://res.cloudinary.com/ddoebyozj/image/upload/v1757525638/fashion_store/product23/3.png"
             ]
         },
         {
