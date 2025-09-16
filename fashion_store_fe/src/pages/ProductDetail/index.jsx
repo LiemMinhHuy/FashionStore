@@ -8,6 +8,7 @@ import { MyUserContext } from '~/utils/Context/context';
 import Breadcrumb from '~/components/Breadcrumb';
 import Alert from '~/components/Alert';
 import { Link } from 'react-router-dom';
+import RequireAuth from '~/components/RequireAuth';
 
 const cx = classNames.bind(styles);
 
@@ -86,7 +87,7 @@ function ProductDetail() {
 
 	// Nếu có lỗi
 	if (error) {
-		return <h2>Error: {error}</h2>;
+		return <RequireAuth/>;
 	}
 
 	// Kiểm tra xem sản phẩm có hợp lệ không trước khi truy cập thuộc tính

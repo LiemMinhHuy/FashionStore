@@ -2,9 +2,9 @@ import React, { useContext, useState } from 'react';
 import styles from './CartDetail.module.scss';
 import classNames from 'classnames/bind';
 import { CartContext } from '~/utils/Context/cartContext';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTrashCan } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
+import { TrashIcon } from '@heroicons/react/24/solid';
+
 
 const cx = classNames.bind(styles);
 
@@ -73,7 +73,7 @@ const CartDetail = () => {
                                         ${item.total_price ? parseFloat(item.total_price).toFixed(0) : '0'}
                                     </div>
                                     <button onClick={() => handleRemoveItem(item.id)} className={cx('remove-item')}>
-                                        <FontAwesomeIcon icon={faTrashCan} />
+                                        <TrashIcon className={cx('icon')} />
                                     </button>
                                 </div>
                             </div>

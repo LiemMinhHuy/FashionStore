@@ -2,6 +2,7 @@ import json
 import logging
 import secrets
 from datetime import datetime, timedelta
+from decimal import Decimal
 from urllib.parse import urlencode
 
 import paypalrestsdk

@@ -195,10 +195,9 @@
     font-weight: 600;
     margin-top: 16px;
     color: #fff;
-    background: #999;
+    background: #000;
     &:hover {
-        background: #000;
-        color: #fff;
+        opacity: 0.8;
     }
 }
 
@@ -394,7 +393,7 @@
     display: flex;
     flex-direction: column;
     gap: 2px;
-    
+
     label {
         font-size: 1.4rem;
         font-weight: 400;
@@ -459,5 +458,150 @@ input[type='text'].input {
     .checkout-form {
         padding: 16px 6px;
         max-width: 100%;
+    }
+}
+
+// Address Selection Styles
+.shipping-info-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .btn-change {
+        font-size: 1.6rem;
+        font-weight: 600;
+        text-decoration-line: underline;
+        margin-bottom: 12px;
+    }
+}
+
+.existing-addresses-section {
+    margin-bottom: 24px;
+
+    .address-list {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+    .address-content {
+        flex: 1;
+
+        .add-info {
+            display: flex;
+            align-items: center;
+
+            .add-fullname {
+                font-size: 1.4rem;
+                font-weight: 600;
+            }
+        }
+        .add-phone {
+            color: #939393;
+        }
+    }
+
+    .address-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 12px;
+        border: 2px solid #e8e8e8;
+        transition: all 0.3s ease;
+        position: relative;
+        background-color: #f3e8dc;
+        font-size: 1.6rem;
+
+        .default-badge {
+            display: inline-block;
+            background: #a3a3a3;
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 4px 10px;
+            margin-left: 12px;
+            letter-spacing: 0.5px;
+        }
+    }
+}
+
+.address-list-show {
+    position: relative;
+
+
+}
+
+.manual-entry-option {
+    margin-top: 32px;
+    border-top: 2px dashed #ddd;
+    padding-top: 24px;
+
+    h4 {
+        font-size: 1.6rem;
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        &:before {
+            font-size: 1.8rem;
+        }
+    }
+}
+
+.no-saved-addresses {
+    background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+    border: 2px solid #ffc107;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 24px;
+
+    p {
+        font-size: 1.5rem;
+        color: #856404;
+        margin: 0;
+        font-weight: 500;
+
+        &:before {
+            font-size: 2rem;
+            display: block;
+            margin-bottom: 8px;
+        }
+    }
+}
+
+// Enhanced form styles for better visual hierarchy
+.shipping-info {
+    .title {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+}
+
+// Responsive design for address selection
+@media (max-width: 768px) {
+    .address-item {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+    }
+
+    .btn-use-address {
+        width: 100%;
+        text-align: center;
+    }
+
+    .address-content {
+        margin-bottom: 8px;
+    }
+
+    .default-badge {
+        margin-left: 0;
+        margin-top: 8px;
+        display: inline-block;
     }
 }

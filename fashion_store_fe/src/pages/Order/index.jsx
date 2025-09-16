@@ -496,7 +496,7 @@ const Order = () => {
                                     <strong>Date: </strong> {formatDateTime(order.created_at)}
                                 </p>
                                 <p>
-                                    <strong>Total:</strong> {parseFloat(order.total_amount).toFixed(2)}$
+                                    <strong>Total:</strong> {parseFloat(order.total_amount).toFixed(0)}$
                                 </p>
                                 {order.points_earned > 0 && (
                                     <p>
@@ -505,9 +505,9 @@ const Order = () => {
                                     </p>
                                 )}
                             </div>
-                            <div className={cx('order-item')}>
+                            <div className={cx('order-item', 'order-address')}>
                                 <p>
-                                    <strong>Address:</strong> {order.shipping_address}
+                                    <strong>Address:</strong> {order.shipping_address?.address || 'No shipping address'}
                                 </p>
                             </div>
                             <div className={cx('order-item')}>

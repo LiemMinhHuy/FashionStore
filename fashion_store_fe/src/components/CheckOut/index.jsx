@@ -1,18 +1,19 @@
-import React, { useState, useContext, useMemo } from 'react';
+import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '~/utils/Context/cartContext';
 import styles from './CheckOut.module.scss';
 import classNames from 'classnames/bind';
-import { authApi, getAuthApi } from '~/utils/request';
+import { getAuthApi } from '~/utils/request';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { PlusIcon, MinusIcon } from '@heroicons/react/24/solid';
 import { level1s, findLevel1ById, findById } from 'dvhcvn';
+import { authApi } from '~/utils/request';
 
 const cx = classNames.bind(styles);
 
 const CheckOut = () => {
-    const {cartItems, clearCart } = useContext(CartContext);
+    const { cartItems, clearCart } = useContext(CartContext);
     const [shippingAddress, setShippingAddress] = useState({});
     const [showPaymentModal, setShowPaymentModal] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('Cash');
@@ -30,6 +31,31 @@ const CheckOut = () => {
     const [street, setStreet] = useState('');
     const [postalCode, setPostalCode] = useState('');
     const [errors, setErrors] = useState({});
+    const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+    const [addressDefault, setAddressDefault] = useState([]);
+    const [showAddress, setShowAddress] = useState(false);
+
+    const fetchAddresses = async () => {
+        try {
+            const response = await authApi(localStorage.getItem('access_token')).get('/addresses/');
+            // Kiểm tra cấu trúc dữ liệu trả về
+            if (Array.isArray(response.data)) {
+                setAddressDefault(response.data);
+            } else if (response.data && Array.isArray(response.data.results)) {
+                setAddressDefault(response.data.results);
+            } else {
+                setAddressDefault([]);
+                console.log('Unexpected data structure:', response.data);
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Failed to fetch addresses. Please try again later.');
+        }
+    };
+
+    useEffect(() => {
+        fetchAddresses();
+    }, []);
 
     // Get list of provinces/cities
     const provinces = level1s;
@@ -40,7 +66,6 @@ const CheckOut = () => {
     // Get list of wards based on selected district
     const wards = districtId ? findById(districtId)?.children || [] : [];
 
-    const exchangeRate = 23000;
     const total = useMemo(() => {
         return cartItems.reduce((sum, item) => {
             const price = parseFloat(item.product.price);
@@ -51,20 +76,20 @@ const CheckOut = () => {
     // Form validation functions
     const validatePhone = (phoneNumber) => {
         if (!phoneNumber) return 'Phone number is required';
-        
+
         // Remove all non-digit characters for validation
         const digitsOnly = phoneNumber.replace(/\D/g, '');
-        
+
         // Check if it has exactly 10 digits
         if (digitsOnly.length !== 10) {
             return 'Phone number must have exactly 10 digits';
         }
-        
+
         // Check if it starts with 0 or +84
         if (!phoneNumber.startsWith('0') && !phoneNumber.startsWith('+84')) {
             return 'Phone number must start with 0 or +84';
         }
-        
+
         return null;
     };
 
@@ -78,20 +103,20 @@ const CheckOut = () => {
 
     const validateForm = () => {
         const newErrors = {};
-        
+
         if (!fullName.trim()) newErrors.fullName = 'Full name is required';
-        
+
         const phoneError = validatePhone(phone);
         if (phoneError) newErrors.phone = phoneError;
-        
+
         if (!provinceId) newErrors.province = 'Please select province/city';
         if (!districtId) newErrors.district = 'Please select district';
         if (!wardId) newErrors.ward = 'Please select ward';
         if (!street.trim()) newErrors.street = 'Street address is required';
-        
+
         const postalError = validatePostalCode(postalCode);
         if (postalError) newErrors.postalCode = postalError;
-        
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -100,10 +125,10 @@ const CheckOut = () => {
     const handlePhoneChange = (e) => {
         const value = e.target.value;
         setPhone(value);
-        
+
         // Clear phone error when user types
         if (errors.phone) {
-            setErrors(prev => ({ ...prev, phone: null }));
+            setErrors((prev) => ({ ...prev, phone: null }));
         }
     };
 
@@ -111,10 +136,10 @@ const CheckOut = () => {
         const value = e.target.value.replace(/\D/g, ''); // Only allow digits
         if (value.length <= 6) {
             setPostalCode(value);
-            
+
             // Clear postal code error when user types
             if (errors.postalCode) {
-                setErrors(prev => ({ ...prev, postalCode: null }));
+                setErrors((prev) => ({ ...prev, postalCode: null }));
             }
         }
     };
@@ -125,7 +150,7 @@ const CheckOut = () => {
         setWardId('');
         // Clear province error
         if (errors.province) {
-            setErrors(prev => ({ ...prev, province: null, district: null, ward: null }));
+            setErrors((prev) => ({ ...prev, province: null, district: null, ward: null }));
         }
     };
 
@@ -134,7 +159,7 @@ const CheckOut = () => {
         setWardId('');
         // Clear district error
         if (errors.district) {
-            setErrors(prev => ({ ...prev, district: null, ward: null }));
+            setErrors((prev) => ({ ...prev, district: null, ward: null }));
         }
     };
 
@@ -142,7 +167,7 @@ const CheckOut = () => {
         setWardId(e.target.value);
         // Clear ward error
         if (errors.ward) {
-            setErrors(prev => ({ ...prev, ward: null }));
+            setErrors((prev) => ({ ...prev, ward: null }));
         }
     };
 
@@ -150,14 +175,14 @@ const CheckOut = () => {
         const province = provinceId ? findLevel1ById(provinceId)?.name : '';
         const district = districtId ? findById(districtId)?.name : '';
         const ward = wardId ? findById(wardId)?.name : '';
-        
+
         // Validate form before returning payload
         const isValid = validateForm();
         if (!isValid) {
             console.log('Form validation failed:', errors);
             return null; // Return null if validation fails
         }
-        
+
         return {
             full_name: fullName.trim(),
             phone: phone.trim(),
@@ -186,9 +211,19 @@ const CheckOut = () => {
         console.log('Payment method:', paymentMethod);
         console.log('Cart items:', cartItems);
 
+        // Mark that user has attempted to submit
+        setHasAttemptedSubmit(true);
+
         // Check if cart is empty
         if (!cartItems || cartItems.length === 0) {
             toast.error('Your cart is empty. Please add items before checkout.');
+            return;
+        }
+
+        // Validate form before proceeding
+        const isFormValid = validateForm();
+        if (!isFormValid) {
+            toast.error('Please fill in all required address information correctly.');
             return;
         }
 
@@ -221,7 +256,7 @@ const CheckOut = () => {
         } catch (e) {
             console.error('Create address failed:', e);
             console.error('Error details:', e.response?.data);
-            
+
             let errorMessage = 'Không thể tảo địa chỉ giao hàng';
             if (e.response?.data?.error) {
                 errorMessage = e.response.data.error;
@@ -230,7 +265,7 @@ const CheckOut = () => {
             } else if (e.response?.data?.postal_code) {
                 errorMessage = 'Lỗi mã bưu điện: ' + e.response.data.postal_code[0];
             }
-            
+
             toast.error(errorMessage);
             return;
         }
@@ -238,10 +273,10 @@ const CheckOut = () => {
         try {
             setLoading(true);
             console.log('Checkout payload:', payload);
-            
+
             const response = await getAuthApi().post('/orders/checkout/', payload);
             console.log('Checkout response:', response);
-            
+
             if ((response.status === 200 || response.status === 201) && response.data) {
                 if (paymentMethod === 'VNPay' && response.data.payment_url) {
                     // Với VNPay, chuyển hướng đến trang thanh toán
@@ -262,9 +297,9 @@ const CheckOut = () => {
         } catch (error) {
             console.error('Checkout error:', error);
             console.error('Error response:', error.response?.data);
-            
+
             let errorMessage = 'An error occurred, please try again later';
-            
+
             if (error.response?.data?.error) {
                 errorMessage = error.response.data.error;
             } else if (error.response?.data?.message) {
@@ -272,45 +307,45 @@ const CheckOut = () => {
             } else if (error.message) {
                 errorMessage = error.message;
             }
-            
+
             toast.error(errorMessage);
-            navigate('/payment-failed', { 
-                state: { 
+            navigate('/payment-failed', {
+                state: {
                     errorMessage: errorMessage,
-                    orderData: { total_amount: total }
-                } 
+                    orderData: { total_amount: total },
+                },
             });
         } finally {
             setLoading(false);
         }
     };
 
-    const handlePayPalSuccess = async (data, actions) => {
-        console.log('PayPal data:', data); // Log PayPal data
-        if (data && data.id) {
-            try {
-                const payload = {
-                    payment_method: 'PayPal', // Payment method
-                    order_id: data.id, // PayPal transaction ID
-                };
+    // const handlePayPalSuccess = async (data, actions) => {
+    //     console.log('PayPal data:', data); // Log PayPal data
+    //     if (data && data.id) {
+    //         try {
+    //             const payload = {
+    //                 payment_method: 'PayPal', // Payment method
+    //                 order_id: data.id, // PayPal transaction ID
+    //             };
 
-                const response = await getAuthApi().post('/orders/checkout/', payload);
+    //             const response = await getAuthApi().post('/orders/checkout/', payload);
 
-                if (response.status === 200) {
-                    clearCart(); // Clear cart only on successful payment
-                    toast.success('PayPal payment successful!');
-                    navigate('/payment-success', { state: { orderData: response.data } });
-                } else {
-                    toast.error('An error occurred while confirming payment.');
-                }
-            } catch (error) {
-                console.error('Error processing PayPal payment:', error);
-                toast.error('Error processing PayPal payment');
-            }
-        } else {
-            toast.error('Invalid payment information.');
-        }
-    };
+    //             if (response.status === 200) {
+    //                 clearCart(); // Clear cart only on successful payment
+    //                 toast.success('PayPal payment successful!');
+    //                 navigate('/payment-success', { state: { orderData: response.data } });
+    //             } else {
+    //                 toast.error('An error occurred while confirming payment.');
+    //             }
+    //         } catch (error) {
+    //             console.error('Error processing PayPal payment:', error);
+    //             toast.error('Error processing PayPal payment');
+    //         }
+    //     } else {
+    //         toast.error('Invalid payment information.');
+    //     }
+    // };
 
     const paymentMethods = [
         {
@@ -352,117 +387,214 @@ const CheckOut = () => {
             <div className={cx('checkout-grid')}>
                 <div className={cx('left-col')}>
                     <div className={cx('box', 'shipping-info')}>
-                        <h3 className={cx('title')}>Delivery Information</h3>
-                        <div className={cx('form-group')}>
-                            <form className={cx('checkout-form')}> 
-                                <div className={cx('form-group')}>
-                                    <label>Full name</label>
-                                    <input
-                                        type="text"
-                                        className={cx('input', { error: errors.fullName })}
-                                        value={fullName}
-                                        onChange={e => {
-                                            setFullName(e.target.value);
-                                            if (errors.fullName) {
-                                                setErrors(prev => ({ ...prev, fullName: null }));
-                                            }
-                                        }}
-                                        placeholder="Enter your full name"
-                                        required
-                                    />
-                                    {errors.fullName && <div className={cx('error-message')}>{errors.fullName}</div>}
+                        {addressDefault && addressDefault.length > 0 ? (
+                            <>
+                                <div className={cx('shipping-info-header')}>
+                                    <h3 className={cx('title')}>Delivery Information</h3>
+                                    <button className={cx('btn-change')} onClick={() => setShowAddress(!showAddress)}>
+                                        Change
+                                    </button>
                                 </div>
-                                <div className={cx('form-group')}>
-                                    <label>Phone</label>
-                                    <input
-                                        type="tel"
-                                        className={cx('input', { error: errors.phone })}
-                                        value={phone}
-                                        onChange={handlePhoneChange}
-                                        placeholder="Enter your phone number (e.g., 0901234567)"
-                                        required
-                                    />
-                                    {errors.phone && <div className={cx('error-message')}>{errors.phone}</div>}
-                                </div>
-                                <div className={cx('form-group')}>
-                                    <label>Province/City</label>
-                                    <select 
-                                        value={provinceId} 
-                                        onChange={handleProvinceChange} 
-                                        className={cx('input', { error: errors.province })} 
-                                        required
-                                    >
-                                        <option value="">Province/city</option>
-                                        {provinces.map(p => (
-                                            <option key={p.id} value={p.id}>{p.name}</option>
+
+                                {showAddress ? (
+                                    <div className={cx('address-list-show')}>
+                                        {addressDefault.map((address, index) => (
+                                            <div
+                                                key={address.id || index}
+                                                className={cx('address-item', { default: address.is_default })}
+                                            >
+                                                <div className={cx('address-content')}>
+                                                    <div className={cx('add-info')}>
+                                                        <div className={cx('add-fullname')}>{address.full_name}</div>
+                                                        <div className={cx('add-default')}>
+                                                            {address.is_default && (
+                                                                <span className={cx('default-badge')}>Default</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className={cx('add-phone')}>{address.phone}</div>
+                                                    <div className={cx('add-address')}>
+                                                        {address.address_line1}, {address.ward}, {address.district},{' '}
+                                                        {address.province}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         ))}
-                                    </select>
-                                    {errors.province && <div className={cx('error-message')}>{errors.province}</div>}
-                                </div>
-                                <div className={cx('form-group')}>
-                                    <label>District</label>
-                                    <select 
-                                        value={districtId} 
-                                        onChange={handleDistrictChange} 
-                                        className={cx('input', { error: errors.district })} 
-                                        required 
-                                        disabled={!provinceId}
-                                    >
-                                        <option value="">District</option>
-                                        {districts.map(d => (
-                                            <option key={d.id} value={d.id}>{d.name}</option>
+                                    </div>
+                                ) : (
+                                    <></>
+                                )}
+
+                                <div className={cx('existing-addresses-section')}>
+                                    <div className={cx('address-list')}>
+                                        {addressDefault.filter(address => address.is_default).map((address, index) => (
+                                            <div
+                                                key={address.id || index}
+                                                className={cx('address-item', { default: address.is_default })}
+                                            >
+                                                <div className={cx('address-content')}>
+                                                    <div className={cx('add-info')}>
+                                                        <div className={cx('add-fullname')}>{address.full_name}</div>
+                                                        <div className={cx('add-default')}>
+                                                            {address.is_default && (
+                                                                <span className={cx('default-badge')}>Default</span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className={cx('add-phone')}>{address.phone}</div>
+                                                    <div className={cx('add-address')}>
+                                                        {address.address_line1}, {address.ward}, {address.district},{' '}
+                                                        {address.province}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         ))}
-                                    </select>
-                                    {errors.district && <div className={cx('error-message')}>{errors.district}</div>}
+                                    </div>
                                 </div>
+                            </>
+                        ) : (
+                            <>
+                                <h3 className={cx('title')}>Delivery Information</h3>
                                 <div className={cx('form-group')}>
-                                    <label>Ward</label>
-                                    <select 
-                                        value={wardId} 
-                                        onChange={handleWardChange} 
-                                        className={cx('input', { error: errors.ward })} 
-                                        required 
-                                        disabled={!districtId}
-                                    >
-                                        <option value="">Ward</option>
-                                        {wards.map(w => (
-                                            <option key={w.id} value={w.id}>{w.name}</option>
-                                        ))}
-                                    </select>
-                                    {errors.ward && <div className={cx('error-message')}>{errors.ward}</div>}
+                                    <form className={cx('checkout-form')}>
+                                        <div className={cx('form-group')}>
+                                            <label>Full name</label>
+                                            <input
+                                                type="text"
+                                                className={cx('input', {
+                                                    error: hasAttemptedSubmit && errors.fullName,
+                                                })}
+                                                value={fullName}
+                                                onChange={(e) => {
+                                                    setFullName(e.target.value);
+                                                    if (errors.fullName) {
+                                                        setErrors((prev) => ({ ...prev, fullName: null }));
+                                                    }
+                                                }}
+                                                placeholder="Enter your full name"
+                                                required
+                                            />
+                                            {hasAttemptedSubmit && errors.fullName && (
+                                                <div className={cx('error-message')}>{errors.fullName}</div>
+                                            )}
+                                        </div>
+                                        <div className={cx('form-group')}>
+                                            <label>Phone</label>
+                                            <input
+                                                type="tel"
+                                                className={cx('input', { error: hasAttemptedSubmit && errors.phone })}
+                                                value={phone}
+                                                onChange={handlePhoneChange}
+                                                placeholder="Enter your phone number (e.g., 0901234567)"
+                                                required
+                                            />
+                                            {hasAttemptedSubmit && errors.phone && (
+                                                <div className={cx('error-message')}>{errors.phone}</div>
+                                            )}
+                                        </div>
+                                        <div className={cx('form-group')}>
+                                            <label>Province/City</label>
+                                            <select
+                                                value={provinceId}
+                                                onChange={handleProvinceChange}
+                                                className={cx('input', {
+                                                    error: hasAttemptedSubmit && errors.province,
+                                                })}
+                                                required
+                                            >
+                                                <option value="">Province/city</option>
+                                                {provinces.map((p) => (
+                                                    <option key={p.id} value={p.id}>
+                                                        {p.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {hasAttemptedSubmit && errors.province && (
+                                                <div className={cx('error-message')}>{errors.province}</div>
+                                            )}
+                                        </div>
+                                        <div className={cx('form-group')}>
+                                            <label>District</label>
+                                            <select
+                                                value={districtId}
+                                                onChange={handleDistrictChange}
+                                                className={cx('input', {
+                                                    error: hasAttemptedSubmit && errors.district,
+                                                })}
+                                                required
+                                                disabled={!provinceId}
+                                            >
+                                                <option value="">District</option>
+                                                {districts.map((d) => (
+                                                    <option key={d.id} value={d.id}>
+                                                        {d.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {hasAttemptedSubmit && errors.district && (
+                                                <div className={cx('error-message')}>{errors.district}</div>
+                                            )}
+                                        </div>
+                                        <div className={cx('form-group')}>
+                                            <label>Ward</label>
+                                            <select
+                                                value={wardId}
+                                                onChange={handleWardChange}
+                                                className={cx('input', { error: hasAttemptedSubmit && errors.ward })}
+                                                required
+                                                disabled={!districtId}
+                                            >
+                                                <option value="">Ward</option>
+                                                {wards.map((w) => (
+                                                    <option key={w.id} value={w.id}>
+                                                        {w.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {hasAttemptedSubmit && errors.ward && (
+                                                <div className={cx('error-message')}>{errors.ward}</div>
+                                            )}
+                                        </div>
+                                        <div className={cx('form-group')}>
+                                            <label>Street/House number</label>
+                                            <input
+                                                type="text"
+                                                className={cx('input', { error: hasAttemptedSubmit && errors.street })}
+                                                value={street}
+                                                onChange={(e) => {
+                                                    setStreet(e.target.value);
+                                                    if (errors.street) {
+                                                        setErrors((prev) => ({ ...prev, street: null }));
+                                                    }
+                                                }}
+                                                placeholder="Enter street, house number"
+                                                required
+                                            />
+                                            {hasAttemptedSubmit && errors.street && (
+                                                <div className={cx('error-message')}>{errors.street}</div>
+                                            )}
+                                        </div>
+                                        <div className={cx('form-group')}>
+                                            <label>Postal code (6 digits)</label>
+                                            <input
+                                                type="text"
+                                                className={cx('input', {
+                                                    error: hasAttemptedSubmit && errors.postalCode,
+                                                })}
+                                                value={postalCode}
+                                                onChange={handlePostalCodeChange}
+                                                placeholder="Enter 6-digit postal code"
+                                                maxLength={6}
+                                                required
+                                            />
+                                            {hasAttemptedSubmit && errors.postalCode && (
+                                                <div className={cx('error-message')}>{errors.postalCode}</div>
+                                            )}
+                                        </div>
+                                    </form>
                                 </div>
-                                <div className={cx('form-group')}>
-                                    <label>Street/House number</label>
-                                    <input
-                                        type="text"
-                                        className={cx('input', { error: errors.street })}
-                                        value={street}
-                                        onChange={e => {
-                                            setStreet(e.target.value);
-                                            if (errors.street) {
-                                                setErrors(prev => ({ ...prev, street: null }));
-                                            }
-                                        }}
-                                        placeholder="Enter street, house number"
-                                        required
-                                    />
-                                    {errors.street && <div className={cx('error-message')}>{errors.street}</div>}
-                                </div>
-                                <div className={cx('form-group')}>
-                                    <label>Postal code (6 digits)</label>
-                                    <input
-                                        type="text"
-                                        className={cx('input', { error: errors.postalCode })}
-                                        value={postalCode}
-                                        onChange={handlePostalCodeChange}
-                                        placeholder="Enter 6-digit postal code"
-                                        maxLength={6}
-                                        required
-                                    />
-                                    {errors.postalCode && <div className={cx('error-message')}>{errors.postalCode}</div>}
-                                </div>
-                            </form>
-                        </div>
+                            </>
+                        )}
                     </div>
                 </div>
                 <div className={cx('center-col')}>
@@ -580,7 +712,10 @@ const CheckOut = () => {
                                 <div key={item.id} className={cx('cart-item')}>
                                     <div className={cx('cart-image-container')}>
                                         <img
-                                            src={item.product.thumbnail?.replace('/media/https%3A', 'https://') || 'https://via.placeholder.com/150x150?text=No+Image'}
+                                            src={
+                                                item.product.thumbnail?.replace('/media/https%3A', 'https://') ||
+                                                'https://via.placeholder.com/150x150?text=No+Image'
+                                            }
                                             className={cx('cart-image')}
                                             alt={item.product.name || 'Product'}
                                         />
@@ -599,24 +734,24 @@ const CheckOut = () => {
 
                             <div className={cx('item-total-container')}>
                                 <span className={cx('item-total-title')}>Order Total</span>
-                                <span className={cx('item-total')}>{total.toFixed(3)}đ</span>
+                                <span className={cx('item-total')}>${total.toFixed(0)}</span>
                             </div>
 
                             <div className={cx('item-total-container')}>
                                 <span className={cx('item-total-title')}>Shipping Fee</span>
-                                <span className={cx('item-total')}>10000đ</span>
+                                <span className={cx('item-total')}>$10</span>
                             </div>
 
                             <div className={cx('item-total-container')}>
                                 <span className={cx('item-total-title')}>Discount</span>
-                                <span className={cx('item-total')}>-10000đ</span>
+                                <span className={cx('item-total')}>-$10</span>
                             </div>
 
                             <span className={cx('line')}></span>
 
                             <div className={cx('item-total-container')}>
                                 <span className={cx('item-total-title')}>Total</span>
-                                <span className={cx('item-total')}>{total.toFixed(3)}đ</span>
+                                <span className={cx('item-total')}>${total.toFixed(0)}</span>
                             </div>
 
                             <div className={cx('item-total-container')}>

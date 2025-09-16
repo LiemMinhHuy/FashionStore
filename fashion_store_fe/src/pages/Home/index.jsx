@@ -11,7 +11,7 @@ const Home = () => (
         <div className={cx('banner-container')}>
             <img src={banner3} alt="banner" className={cx('banner')} />
             <button className={cx('button')}> 
-                Show Now
+                Shop Now
             </button>
         </div>
     </div>

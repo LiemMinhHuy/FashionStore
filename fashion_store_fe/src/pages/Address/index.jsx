@@ -31,10 +31,6 @@ function Address() {
         try {
             setError(null);
             const response = await authApi(localStorage.getItem('access_token')).get('/addresses/');
-            console.log('API Response:', response);
-            console.log('Response data:', response.data);
-            console.log('Response data type:', typeof response.data);
-            console.log('Is array:', Array.isArray(response.data));
             
             // Kiểm tra cấu trúc dữ liệu trả về
             if (Array.isArray(response.data)) {
