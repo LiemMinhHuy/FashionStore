@@ -9,6 +9,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { PlusIcon, MinusIcon } from '@heroicons/react/24/solid';
 import { level1s, findLevel1ById, findById } from 'dvhcvn';
 import { authApi } from '~/utils/request';
+import { PencilSquareIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import AddressForm from '~/components/AddressForm';
 
 const cx = classNames.bind(styles);
 
@@ -34,6 +36,24 @@ const CheckOut = () => {
     const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
     const [addressDefault, setAddressDefault] = useState([]);
     const [showAddress, setShowAddress] = useState(false);
+    const [selectedAddressId, setSelectedAddressId] = useState(null);
+    const [showAddressForm, setShowAddressForm] = useState(false);
+    const [newAddressData, setNewAddressData] = useState({
+        full_name: '',
+        phone: '',
+        address_line1: '',
+        address_line2: '',
+        province: '',
+        district: '',
+        ward: '',
+        postal_code: '',
+        is_default: false,
+        is_billing: false,
+        is_shipping: true,
+        note: '',
+    });
+
+
 
     const fetchAddresses = async () => {
         try {
@@ -55,7 +75,80 @@ const CheckOut = () => {
 
     useEffect(() => {
         fetchAddresses();
-    }, []);
+        // Set default address as selected if available
+        if (addressDefault.length > 0) {
+            const defaultAddr = addressDefault.find((addr) => addr.is_default);
+            if (defaultAddr) {
+                setSelectedAddressId(defaultAddr.id);
+            }
+        }
+    }, [addressDefault.length]);
+
+    // Handle new address form input changes
+    const handleNewAddressChange = (e) => {
+        const { name, value, type, checked } = e.target;
+        setNewAddressData((prev) => ({
+            ...prev,
+            [name]: type === 'checkbox' ? checked : value,
+        }));
+    };
+
+    // Handle address selection
+    const handleAddressSelection = (addressId) => {
+        setSelectedAddressId(addressId);
+    };
+
+    // Save selected address for checkout
+    const handleSaveSelectedAddress = () => {
+        if (selectedAddressId) {
+            const selectedAddress = addressDefault.find((addr) => addr.id === selectedAddressId);
+            if (selectedAddress) {
+                // Update shipping address with selected address
+                setShippingAddress(selectedAddress);
+                setShowAddress(false);
+                toast.success('Address selected successfully!');
+            }
+        } else {
+            toast.error('Please select an address first.');
+        }
+    };
+
+    // Handle new address form submission
+    const handleNewAddressSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await authApi(localStorage.getItem('access_token')).post('/addresses/', newAddressData);
+            if (response.data) {
+                // Refresh addresses list
+                await fetchAddresses();
+                // Reset form
+                setNewAddressData({
+                    full_name: '',
+                    phone: '',
+                    address_line1: '',
+                    address_line2: '',
+                    province: '',
+                    district: '',
+                    ward: '',
+                    postal_code: '',
+                    is_default: false,
+                    is_billing: false,
+                    is_shipping: true,
+                    note: '',
+                });
+                setShowAddressForm(false);
+                toast.success('New address added successfully!');
+            }
+        } catch (error) {
+            console.error('Error adding new address:', error);
+            toast.error('Failed to add new address. Please try again.');
+        }
+    };
+
+    const handleAddForm = () => {
+        setShowAddressForm(!showAddressForm);
+        // Don't close the address modal when toggling the form
+    };
 
     // Get list of provinces/cities
     const provinces = level1s;
@@ -171,6 +264,11 @@ const CheckOut = () => {
         }
     };
 
+    const handleAddressChange = (e) => {
+        setShowAddressForm(false);
+        setShowAddress(true);
+    };
+
     const getAddressPayload = () => {
         const province = provinceId ? findLevel1ById(provinceId)?.name : '';
         const district = districtId ? findById(districtId)?.name : '';
@@ -208,6 +306,7 @@ const CheckOut = () => {
     const handleCheckOut = async () => {
         console.log('Clicked');
         console.log('Shipping address:', shippingAddress);
+        console.log('Selected address ID:', selectedAddressId);
         console.log('Payment method:', paymentMethod);
         console.log('Cart items:', cartItems);
 
@@ -220,53 +319,62 @@ const CheckOut = () => {
             return;
         }
 
-        // Validate form before proceeding
-        const isFormValid = validateForm();
-        if (!isFormValid) {
-            toast.error('Please fill in all required address information correctly.');
-            return;
-        }
-
         let payload = {
             payment_method: paymentMethod,
         };
 
-        // If shippingAddress looks like an object with address fields, try to create or select an address
-        try {
-            if (shippingAddress && typeof shippingAddress === 'object' && shippingAddress.address_line1) {
-                console.log('Creating address with data:', shippingAddress);
-                // Create address via API then use its id
-                const createRes = await getAuthApi().post('/addresses/', shippingAddress);
-                if (createRes?.data?.id) {
-                    payload.shipping_address_id = createRes.data.id;
-                    console.log('Address created successfully with ID:', createRes.data.id);
-                } else {
-                    console.error('Address creation failed: No ID returned');
-                    toast.error('Không thể tạo địa chỉ giao hàng');
+        // If user has selected an existing address, use it directly
+        if (selectedAddressId) {
+            payload.shipping_address_id = selectedAddressId;
+            console.log('Using selected address ID:', selectedAddressId);
+        }
+        // Otherwise, check if we have shipping address from form or manual input
+        else if (shippingAddress && typeof shippingAddress === 'object') {
+            // If shippingAddress has an ID, it's an existing address
+            if (shippingAddress.id) {
+                payload.shipping_address_id = shippingAddress.id;
+                console.log('Using shipping address ID:', shippingAddress.id);
+            }
+            // If it has address_line1, it's a new address to be created
+            else if (shippingAddress.address_line1) {
+                // Validate form before proceeding
+                const isFormValid = validateForm();
+                if (!isFormValid) {
+                    toast.error('Please fill in all required address information correctly.');
                     return;
                 }
-            } else if (shippingAddress === null) {
-                // Form validation failed
-                toast.error('Vui lòng kiểm tra lại thông tin địa chỉ giao hàng');
-                return;
-            } else {
-                // If no shipping address provided, let backend use default address
-                console.log('No shipping address provided, backend will use default or return error');
-            }
-        } catch (e) {
-            console.error('Create address failed:', e);
-            console.error('Error details:', e.response?.data);
 
-            let errorMessage = 'Không thể tảo địa chỉ giao hàng';
-            if (e.response?.data?.error) {
-                errorMessage = e.response.data.error;
-            } else if (e.response?.data?.phone) {
-                errorMessage = 'Lỗi số điện thoại: ' + e.response.data.phone[0];
-            } else if (e.response?.data?.postal_code) {
-                errorMessage = 'Lỗi mã bưu điện: ' + e.response.data.postal_code[0];
-            }
+                try {
+                    console.log('Creating address with data:', shippingAddress);
+                    const createRes = await getAuthApi().post('/addresses/', shippingAddress);
+                    if (createRes?.data?.id) {
+                        payload.shipping_address_id = createRes.data.id;
+                        console.log('Address created successfully with ID:', createRes.data.id);
+                    } else {
+                        console.error('Address creation failed: No ID returned');
+                        toast.error('Unable to create shipping address');
+                        return;
+                    }
+                } catch (e) {
+                    console.error('Create address failed:', e);
+                    console.error('Error details:', e.response?.data);
 
-            toast.error(errorMessage);
+                    let errorMessage = 'Unable to create shipping address';
+                    if (e.response?.data?.error) {
+                        errorMessage = e.response.data.error;
+                    } else if (e.response?.data?.phone) {
+                        errorMessage = 'Phone number error: ' + e.response.data.phone[0];
+                    } else if (e.response?.data?.postal_code) {
+                        errorMessage = 'Postal code error: ' + e.response.data.postal_code[0];
+                    }
+
+                    toast.error(errorMessage);
+                    return;
+                }
+            }
+        } else {
+            // No address provided
+            toast.error('Please select or provide shipping address information.');
             return;
         }
 
@@ -391,35 +499,97 @@ const CheckOut = () => {
                             <>
                                 <div className={cx('shipping-info-header')}>
                                     <h3 className={cx('title')}>Delivery Information</h3>
-                                    <button className={cx('btn-change')} onClick={() => setShowAddress(!showAddress)}>
+                                    <button className={cx('btn-change')} onClick={() => handleAddressChange()}>
                                         Change
                                     </button>
                                 </div>
 
                                 {showAddress ? (
                                     <div className={cx('address-list-show')}>
-                                        {addressDefault.map((address, index) => (
-                                            <div
-                                                key={address.id || index}
-                                                className={cx('address-item', { default: address.is_default })}
-                                            >
-                                                <div className={cx('address-content')}>
-                                                    <div className={cx('add-info')}>
-                                                        <div className={cx('add-fullname')}>{address.full_name}</div>
-                                                        <div className={cx('add-default')}>
-                                                            {address.is_default && (
-                                                                <span className={cx('default-badge')}>Default</span>
-                                                            )}
+                                        <div className={cx('add-list-container')}>
+                                            <div className={cx('add-list-header')}>
+                                                <h3 className={cx('add-list-title')}>
+                                                    {showAddressForm ? 'Add New Address' : 'Select Address'}
+                                                </h3>
+                                                <button
+                                                    className={cx('btn-close')}
+                                                    onClick={() => setShowAddress(false)}
+                                                >
+                                                    <XMarkIcon className={cx('icon-close')} />
+                                                </button>
+                                            </div>
+                                            {/* Address List - Only show when not adding new address */}
+                                            {!showAddressForm &&
+                                                addressDefault.map((address, index) => (
+                                                    <div
+                                                        key={address.id || index}
+                                                        className={cx('address-item', {
+                                                            default: address.is_default,
+                                                            selected: selectedAddressId === address.id,
+                                                        })}
+                                                    >
+                                                        <div className={cx('address-content')}>
+                                                            <div className={cx('choose')}>
+                                                                <input
+                                                                    type="radio"
+                                                                    name="selectedAddress"
+                                                                    value={address.id}
+                                                                    checked={selectedAddressId === address.id}
+                                                                    onChange={() => handleAddressSelection(address.id)}
+                                                                />
+                                                            </div>
+                                                            <div className={cx('add-info')}>
+                                                                <div className={cx('add-fullname')}>
+                                                                    {address.full_name}
+                                                                </div>
+                                                            </div>
+                                                            <div className={cx('add-phone')}>{address.phone}</div>
+                                                            <div className={cx('add-address')}>
+                                                                {address.address_line1}, {address.ward},{' '}
+                                                                {address.district}, {address.province}
+                                                            </div>
+
+                                                            <div className={cx('add-default')}>
+                                                                {address.is_default && (
+                                                                    <span className={cx('default-badge')}>Default</span>
+                                                                )}
+                                                            </div>
+
+                                                            <button className={cx('btn-edit')}>
+                                                                <PencilSquareIcon className={cx('icon-edit')} />
+                                                            </button>
                                                         </div>
                                                     </div>
-                                                    <div className={cx('add-phone')}>{address.phone}</div>
-                                                    <div className={cx('add-address')}>
-                                                        {address.address_line1}, {address.ward}, {address.district},{' '}
-                                                        {address.province}
-                                                    </div>
-                                                </div>
+                                                ))}
+                                            {/* Add New Address Form */}
+                                            {showAddressForm && (
+                                                <AddressForm
+                                                    formData={newAddressData}
+                                                    onInputChange={handleNewAddressChange}
+                                                    onSubmit={handleNewAddressSubmit}
+                                                    onCancel={() => setShowAddressForm(false)}
+                                                    showCheckboxes={true}
+                                                    submitButtonText="Add Address"
+                                                    cancelButtonText="Cancel"
+                                                    className="checkout-address-form"
+                                                    showTitle={true}
+                                                />
+                                            )}
+
+                                            <div className={cx('add-list-footer')}>
+                                                <button className={cx('btn-add')} onClick={handleAddForm}>
+                                                    <PlusIcon className={cx('add-icon')} />
+                                                    {showAddressForm ? 'Cancel' : 'Add address'}
+                                                </button>
+                                                <button
+                                                    className={cx('btn-save')}
+                                                    onClick={handleSaveSelectedAddress}
+                                                    disabled={!selectedAddressId}
+                                                >
+                                                    Save
+                                                </button>
                                             </div>
-                                        ))}
+                                        </div>
                                     </div>
                                 ) : (
                                     <></>
@@ -427,28 +597,32 @@ const CheckOut = () => {
 
                                 <div className={cx('existing-addresses-section')}>
                                     <div className={cx('address-list')}>
-                                        {addressDefault.filter(address => address.is_default).map((address, index) => (
-                                            <div
-                                                key={address.id || index}
-                                                className={cx('address-item', { default: address.is_default })}
-                                            >
-                                                <div className={cx('address-content')}>
-                                                    <div className={cx('add-info')}>
-                                                        <div className={cx('add-fullname')}>{address.full_name}</div>
-                                                        <div className={cx('add-default')}>
-                                                            {address.is_default && (
-                                                                <span className={cx('default-badge')}>Default</span>
-                                                            )}
+                                        {addressDefault
+                                            .filter((address) => address.is_default)
+                                            .map((address, index) => (
+                                                <div
+                                                    key={address.id || index}
+                                                    className={cx('address-item', { default: address.is_default })}
+                                                >
+                                                    <div className={cx('address-content')}>
+                                                        <div className={cx('add-info')}>
+                                                            <div className={cx('add-fullname')}>
+                                                                {address.full_name}
+                                                            </div>
+                                                            <div className={cx('add-default')}>
+                                                                {address.is_default && (
+                                                                    <span className={cx('default-badge')}>Default</span>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className={cx('add-phone')}>{address.phone}</div>
+                                                        <div className={cx('add-address')}>
+                                                            {address.address_line1}, {address.ward}, {address.district},{' '}
+                                                            {address.province}
                                                         </div>
                                                     </div>
-                                                    <div className={cx('add-phone')}>{address.phone}</div>
-                                                    <div className={cx('add-address')}>
-                                                        {address.address_line1}, {address.ward}, {address.district},{' '}
-                                                        {address.province}
-                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
+                                            ))}
                                     </div>
                                 </div>
                             </>

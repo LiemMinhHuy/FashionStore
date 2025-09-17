@@ -199,6 +199,220 @@
     &:hover {
         opacity: 0.8;
     }
+    
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
+
+// New Address Form Styles
+.new-address-form {
+    margin-top: 20px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+
+    .form-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 16px;
+        color: #333;
+    }
+
+    .address-form {
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+
+            @media (max-width: 768px) {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+
+            label {
+                display: block;
+                font-size: 1.4rem;
+                font-weight: 500;
+                margin-bottom: 8px;
+                color: #333;
+            }
+
+            .form-input {
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 1.4rem;
+                transition: border-color 0.3s;
+
+                &:focus {
+                    outline: none;
+                    border-color: #007bff;
+                }
+            }
+
+            .form-textarea {
+                width: 100%;
+                padding: 12px;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                font-size: 1.4rem;
+                resize: vertical;
+                min-height: 80px;
+                transition: border-color 0.3s;
+
+                &:focus {
+                    outline: none;
+                    border-color: #007bff;
+                }
+            }
+        }
+
+        .form-checkboxes {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+
+            .checkbox-label {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 1.4rem;
+                cursor: pointer;
+
+                .checkbox {
+                    width: 16px;
+                    height: 16px;
+                }
+            }
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+
+            .btn-form-save {
+                background: #28a745;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                font-size: 1.4rem;
+                cursor: pointer;
+                transition: background 0.3s;
+
+                &:hover {
+                    background: #218838;
+                }
+            }
+
+            .btn-form-cancel {
+                background: #6c757d;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 4px;
+                font-size: 1.4rem;
+                cursor: pointer;
+                transition: background 0.3s;
+
+                &:hover {
+                    background: #5a6268;
+                }
+            }
+        }
+    }
+}
+
+// Address Selection Styles
+.address-item {
+    &.selected {
+        border: 2px solid #007bff;
+        background-color: #f8f9fa;
+    }
+}
+
+.choose {
+    input[type="radio"] {
+        margin-right: 8px;
+        width: 16px;
+        height: 16px;
+    }
+}
+
+// Footer Button Styles
+.add-list-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    border-top: 1px solid #e0e0e0;
+
+    .btn-add {
+        flex: 1;
+        color: #000;
+        border-radius: 8px;
+        font-size: 1.6rem;
+        font-weight: 600;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+
+        &:hover {
+            opacity: 0.9;
+        }
+
+        &:active {
+            transform: translateY(0);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .add-icon{
+            width: 20px;
+            height: 20px;
+        }
+    }
+
+    .btn-save {
+        padding: 12px 20px;
+        background-color: #000;
+        color: white;
+        border: none;
+        font-size: 1.4rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+
+        :hover{
+            opacity: 0.8;
+        }
+    }
+}
+
+.btn-save {
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: #ccc;
+        
+        &:hover {
+            background: #ccc;
+        }
+    }
 }
 
 .box {
@@ -526,9 +740,131 @@ input[type='text'].input {
 }
 
 .address-list-show {
-    position: relative;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
 
+    .add-list-container {
+        width: 100%;
+        max-width: 680px;
+        max-height: 80vh;
+        background: #fff;
+        overflow: hidden;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        animation: slideUp 0.3s ease-out;
+        margin: 20px;
+    }
 
+    .add-list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 18px 20px;
+        border-bottom: 2px solid #f5f5f5;
+        background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+
+        .add-list-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-close {
+            border: none;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+
+            .icon-close {
+                width: 20px;
+                height: 20px;
+                color: #666;
+            }
+        }
+    }
+
+    .address-content {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 20px 28px;
+        border-bottom: 1px solid #f0f0f0;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        position: relative;
+
+        .choose {
+        }
+
+        .add-info {
+
+            .add-fullname {
+                font-size: 1.4rem;
+                font-weight: 600;
+                color: #333;
+                margin-bottom: 6px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                min-width: 100px;
+            }
+        }
+        .add-default {
+            position: absolute;
+            top: 46px;
+            right: 32px;
+
+            .default-badge {
+                background: #000;
+                display: inline-block;
+                color: #fff;
+                font-size: 0.8rem;
+                font-weight: 600;
+                padding: 4px 12px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+        }
+
+        .btn-edit {
+
+            .icon-edit {
+                width: 20px;
+                height: 20px;
+                color: #000;
+            }
+        }
+
+        .add-phone {
+            font-size: 1.4rem;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .add-address {
+            font-size: 1.4rem;
+            color: #888;
+            line-height: 1.4;
+            max-width: 240px;
+        }
+    }
 }
 
 .manual-entry-option {

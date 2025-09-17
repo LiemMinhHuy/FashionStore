@@ -3,6 +3,7 @@ import { authApi } from '~/utils/request';
 import styles from './Address.module.scss';
 import classNames from 'classnames/bind';
 import { PlusIcon, PencilIcon, TrashIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import AddressForm from '~/components/AddressForm';
 
 const cx = classNames.bind(styles);
 
@@ -208,189 +209,198 @@ function Address() {
             </div>
 
             {showForm && (
-                <div className={cx('form-overlay')}>
-                    <div className={cx('form-card')}>
-                        <div className={cx('form-header')}>
-                            <h2>{editingAddress ? 'Edit Address' : 'Add New Address'}</h2>
-                            <button 
-                                className={cx('btn-close')}
-                                onClick={resetForm}
-                            >
-                                ×
-                            </button>
-                        </div>
+                <AddressForm
+                    formData={formData}
+                    onInputChange={handleInputChange}
+                    onSubmit={handleSubmit}
+                    onCancel={resetForm}
+                    isEditing={!!editingAddress}
+                    showTitle={true}
+                    showCheckboxes={true}
+                />
+                // <div className={cx('form-overlay')}>
+                //     <div className={cx('form-card')}>
+                //         <div className={cx('form-header')}>
+                //             <h2>{editingAddress ? 'Edit Address' : 'Add New Address'}</h2>
+                //             <button 
+                //                 className={cx('btn-close')}
+                //                 onClick={resetForm}
+                //             >
+                //                 ×
+                //             </button>
+                //         </div>
 
-                        <form onSubmit={handleSubmit} className={cx('address-form')}>
-                            <div className={cx('form-row')}>
-                                <div className={cx('form-group')}>
-                                    <label htmlFor="full_name">Full Name *</label>
-                                    <input
-                                        type="text"
-                                        id="full_name"
-                                        name="full_name"
-                                        value={formData.full_name}
-                                        onChange={handleInputChange}
-                                        required
-                                        className={cx('form-input')}
-                                    />
-                                </div>
-                                <div className={cx('form-group')}>
-                                    <label htmlFor="phone">Phone *</label>
-                                    <input
-                                        type="tel"
-                                        id="phone"
-                                        name="phone"
-                                        value={formData.phone}
-                                        onChange={handleInputChange}
-                                        required
-                                        className={cx('form-input')}
-                                        placeholder="0xxxxxxxxx"
-                                    />
-                                </div>
-                            </div>
+                //         <form onSubmit={handleSubmit} className={cx('address-form')}>
+                //             <div className={cx('form-row')}>
+                //                 <div className={cx('form-group')}>
+                //                     <label htmlFor="full_name">Full Name *</label>
+                //                     <input
+                //                         type="text"
+                //                         id="full_name"
+                //                         name="full_name"
+                //                         value={formData.full_name}
+                //                         onChange={handleInputChange}
+                //                         required
+                //                         className={cx('form-input')}
+                //                     />
+                //                 </div>
+                //                 <div className={cx('form-group')}>
+                //                     <label htmlFor="phone">Phone *</label>
+                //                     <input
+                //                         type="tel"
+                //                         id="phone"
+                //                         name="phone"
+                //                         value={formData.phone}
+                //                         onChange={handleInputChange}
+                //                         required
+                //                         className={cx('form-input')}
+                //                         placeholder="0xxxxxxxxx"
+                //                     />
+                //                 </div>
+                //             </div>
 
-                            <div className={cx('form-group')}>
-                                <label htmlFor="address_line1">Address Line 1 *</label>
-                                <input
-                                    type="text"
-                                    id="address_line1"
-                                    name="address_line1"
-                                    value={formData.address_line1}
-                                    onChange={handleInputChange}
-                                    required
-                                    className={cx('form-input')}
-                                    placeholder="Street address, house number"
-                                />
-                            </div>
+                //             <div className={cx('form-group')}>
+                //                 <label htmlFor="address_line1">Address Line 1 *</label>
+                //                 <input
+                //                     type="text"
+                //                     id="address_line1"
+                //                     name="address_line1"
+                //                     value={formData.address_line1}
+                //                     onChange={handleInputChange}
+                //                     required
+                //                     className={cx('form-input')}
+                //                     placeholder="Street address, house number"
+                //                 />
+                //             </div>
 
-                            <div className={cx('form-group')}>
-                                <label htmlFor="address_line2">Address Line 2</label>
-                                <input
-                                    type="text"
-                                    id="address_line2"
-                                    name="address_line2"
-                                    value={formData.address_line2}
-                                    onChange={handleInputChange}
-                                    className={cx('form-input')}
-                                    placeholder="Apartment, suite, etc. (optional)"
-                                />
-                            </div>
+                //             <div className={cx('form-group')}>
+                //                 <label htmlFor="address_line2">Address Line 2</label>
+                //                 <input
+                //                     type="text"
+                //                     id="address_line2"
+                //                     name="address_line2"
+                //                     value={formData.address_line2}
+                //                     onChange={handleInputChange}
+                //                     className={cx('form-input')}
+                //                     placeholder="Apartment, suite, etc. (optional)"
+                //                 />
+                //             </div>
 
-                            <div className={cx('form-row')}>
-                                <div className={cx('form-group')}>
-                                    <label htmlFor="province">Province/City *</label>
-                                    <input
-                                        type="text"
-                                        id="province"
-                                        name="province"
-                                        value={formData.province}
-                                        onChange={handleInputChange}
-                                        required
-                                        className={cx('form-input')}
-                                    />
-                                </div>
-                                <div className={cx('form-group')}>
-                                    <label htmlFor="district">District *</label>
-                                    <input
-                                        type="text"
-                                        id="district"
-                                        name="district"
-                                        value={formData.district}
-                                        onChange={handleInputChange}
-                                        required
-                                        className={cx('form-input')}
-                                    />
-                                </div>
-                            </div>
+                //             <div className={cx('form-row')}>
+                //                 <div className={cx('form-group')}>
+                //                     <label htmlFor="province">Province/City *</label>
+                //                     <input
+                //                         type="text"
+                //                         id="province"
+                //                         name="province"
+                //                         value={formData.province}
+                //                         onChange={handleInputChange}
+                //                         required
+                //                         className={cx('form-input')}
+                //                     />
+                //                 </div>
+                //                 <div className={cx('form-group')}>
+                //                     <label htmlFor="district">District *</label>
+                //                     <input
+                //                         type="text"
+                //                         id="district"
+                //                         name="district"
+                //                         value={formData.district}
+                //                         onChange={handleInputChange}
+                //                         required
+                //                         className={cx('form-input')}
+                //                     />
+                //                 </div>
+                //             </div>
 
-                            <div className={cx('form-row')}>
-                                <div className={cx('form-group')}>
-                                    <label htmlFor="ward">Ward *</label>
-                                    <input
-                                        type="text"
-                                        id="ward"
-                                        name="ward"
-                                        value={formData.ward}
-                                        onChange={handleInputChange}
-                                        required
-                                        className={cx('form-input')}
-                                    />
-                                </div>
-                                <div className={cx('form-group')}>
-                                    <label htmlFor="postal_code">Postal Code</label>
-                                    <input
-                                        type="text"
-                                        id="postal_code"
-                                        name="postal_code"
-                                        value={formData.postal_code}
-                                        onChange={handleInputChange}
-                                        className={cx('form-input')}
-                                        placeholder="6 digits"
-                                    />
-                                </div>
-                            </div>
+                //             <div className={cx('form-row')}>
+                //                 <div className={cx('form-group')}>
+                //                     <label htmlFor="ward">Ward *</label>
+                //                     <input
+                //                         type="text"
+                //                         id="ward"
+                //                         name="ward"
+                //                         value={formData.ward}
+                //                         onChange={handleInputChange}
+                //                         required
+                //                         className={cx('form-input')}
+                //                     />
+                //                 </div>
+                //                 <div className={cx('form-group')}>
+                //                     <label htmlFor="postal_code">Postal Code</label>
+                //                     <input
+                //                         type="text"
+                //                         id="postal_code"
+                //                         name="postal_code"
+                //                         value={formData.postal_code}
+                //                         onChange={handleInputChange}
+                //                         className={cx('form-input')}
+                //                         placeholder="6 digits"
+                //                     />
+                //                 </div>
+                //             </div>
 
-                            <div className={cx('form-group')}>
-                                <label htmlFor="note">Note</label>
-                                <textarea
-                                    id="note"
-                                    name="note"
-                                    value={formData.note}
-                                    onChange={handleInputChange}
-                                    className={cx('form-textarea')}
-                                    placeholder="Additional delivery instructions"
-                                    rows="3"
-                                />
-                            </div>
+                //             <div className={cx('form-group')}>
+                //                 <label htmlFor="note">Note</label>
+                //                 <textarea
+                //                     id="note"
+                //                     name="note"
+                //                     value={formData.note}
+                //                     onChange={handleInputChange}
+                //                     className={cx('form-textarea')}
+                //                     placeholder="Additional delivery instructions"
+                //                     rows="3"
+                //                 />
+                //             </div>
 
-                            <div className={cx('form-checkboxes')}>
-                                <label className={cx('checkbox-label')}>
-                                    <input
-                                        type="checkbox"
-                                        name="is_default"
-                                        checked={formData.is_default}
-                                        onChange={handleInputChange}
-                                        className={cx('checkbox')}
-                                    />
-                                    Set as default address
-                                </label>
-                                <label className={cx('checkbox-label')}>
-                                    <input
-                                        type="checkbox"
-                                        name="is_billing"
-                                        checked={formData.is_billing}
-                                        onChange={handleInputChange}
-                                        className={cx('checkbox')}
-                                    />
-                                    Use for billing
-                                </label>
-                                <label className={cx('checkbox-label')}>
-                                    <input
-                                        type="checkbox"
-                                        name="is_shipping"
-                                        checked={formData.is_shipping}
-                                        onChange={handleInputChange}
-                                        className={cx('checkbox')}
-                                    />
-                                    Use for shipping
-                                </label>
-                            </div>
+                //             <div className={cx('form-checkboxes')}>
+                //                 <label className={cx('checkbox-label')}>
+                //                     <input
+                //                         type="checkbox"
+                //                         name="is_default"
+                //                         checked={formData.is_default}
+                //                         onChange={handleInputChange}
+                //                         className={cx('checkbox')}
+                //                     />
+                //                     Set as default address
+                //                 </label>
+                //                 <label className={cx('checkbox-label')}>
+                //                     <input
+                //                         type="checkbox"
+                //                         name="is_billing"
+                //                         checked={formData.is_billing}
+                //                         onChange={handleInputChange}
+                //                         className={cx('checkbox')}
+                //                     />
+                //                     Use for billing
+                //                 </label>
+                //                 <label className={cx('checkbox-label')}>
+                //                     <input
+                //                         type="checkbox"
+                //                         name="is_shipping"
+                //                         checked={formData.is_shipping}
+                //                         onChange={handleInputChange}
+                //                         className={cx('checkbox')}
+                //                     />
+                //                     Use for shipping
+                //                 </label>
+                //             </div>
 
-                            <div className={cx('form-actions')}>
-                                <button type="submit" className={cx('btn-save')}>
-                                    {editingAddress ? 'Update Address' : 'Add Address'}
-                                </button>
-                                <button 
-                                    type="button" 
-                                    onClick={resetForm}
-                                    className={cx('btn-cancel')}
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+                //             <div className={cx('form-actions')}>
+                //                 <button type="submit" className={cx('btn-save')}>
+                //                     {editingAddress ? 'Update Address' : 'Add Address'}
+                //                 </button>
+                //                 <button 
+                //                     type="button" 
+                //                     onClick={resetForm}
+                //                     className={cx('btn-cancel')}
+                //                 >
+                //                     Cancel
+                //                 </button>
+                //             </div>
+                //         </form>
+                //     </div>
+                // </div>
             )}
 
             <div className={cx('addresses-grid')}>
