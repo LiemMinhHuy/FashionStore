@@ -507,8 +507,15 @@ const Order = () => {
                             </div>
                             <div className={cx('order-item', 'order-address')}>
                                 <p>
-                                    <strong>Address:</strong> {order.shipping_address?.address || 'No shipping address'}
+                                    <strong>Address:</strong> {order.shipping_address_details?.full_address || 'No shipping address'}
                                 </p>
+                                {order.shipping_address_details && (
+                                    <div className={cx('address-details')}>
+                                        {order.shipping_address_details.note && (
+                                            <p><strong>Note:</strong> {order.shipping_address_details.note}</p>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <div className={cx('order-item')}>
                                 <p className={cx('order-status')}>{order.status}</p>

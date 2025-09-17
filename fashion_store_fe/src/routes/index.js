@@ -9,7 +9,7 @@ import Coupon from '../pages/Coupon';
 import Product from '../pages/Product';
 import ProductDetailPage from '~/pages/ProductDetail';
 import CartDetail from '~/components/CartDetails';
-import CheckOut from '~/components/CheckOut';
+import CheckOut from '~/pages/CheckOut';
 import Order from '~/pages/Order';
 import OrderDetail from '~/pages/OrderDetail';
 import SignUp from '~/pages/SignUp';

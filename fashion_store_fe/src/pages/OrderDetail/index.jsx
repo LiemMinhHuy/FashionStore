@@ -88,7 +88,7 @@ function OrderDetail() {
                                 {order.customer.first_name} {order.customer.last_name}
                             </p>
                             <p>{order.customer.email}</p>
-                            <p>{order.phone || 'Not updated yet'}</p>
+                            <p>{order.customer.phone || 'Not updated yet'}</p>
                         </div>
                     </div>
 
@@ -103,7 +103,20 @@ function OrderDetail() {
                     <div className={cx('info-section')}>
                         <h3>Shipping Information</h3>
                         <div className={cx('info-content')}>
-                            <p>{order.shipping_address || 'No shipping information available'}</p>
+                            <div className={cx('order-item', 'order-address')}>
+                                <p>{order.shipping_address_details.full_name}</p>
+                                <p>{order.shipping_address_details.phone}</p>
+                                <p>{order.shipping_address_details?.full_address || 'No shipping address'}</p>
+                                {order.shipping_address_details && (
+                                    <div className={cx('address-details')}>
+                                        {order.shipping_address_details.note && (
+                                            <p>
+                                                <strong>Note:</strong> {order.shipping_address_details.note}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -138,7 +151,7 @@ function OrderDetail() {
                                         <h4 className={cx('product-name')}>{item.product_name} </h4>
                                         <p className={cx('product-quantity')}> x{item.quantity}</p>
                                     </div>
-                                    <span className={cx('price')}>{item.unit_price}</span>
+                                    <span className={cx('price')}>${parseFloat(item.unit_price).toFixed(0)}</span>
                                 </div>
                             </div>
                         ))}
@@ -147,7 +160,7 @@ function OrderDetail() {
                     <div className={cx('order-summary')}>
                         <div className={cx('summary-row')}>
                             <span>Subtotal</span>
-                            <span>{order.total_amount}</span>
+                            <span>${parseFloat(order.total_amount).toFixed(0)}</span>
                         </div>
                         <div className={cx('summary-row')}>
                             <span>Shipping Fee</span>
@@ -155,7 +168,7 @@ function OrderDetail() {
                         </div>
                         <div className={cx('summary-row', 'total')}>
                             <span>Total</span>
-                            <span>{order.total_amount}</span>
+                            <span>${parseFloat(order.total_amount).toFixed(0)}</span>
                         </div>
                     </div>
                 </div>

@@ -134,15 +134,65 @@ class CartSerializer(serializers.ModelSerializer):
     def get_total_amount(self, obj):
         return obj.total_amount
 
+class AddressSerializer(serializers.ModelSerializer):
+    full_address = serializers.ReadOnlyField()
+    short_address = serializers.ReadOnlyField()
+    administrative_address = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Address
+        fields = [
+            'id', 'full_name', 'phone', 'address_line1', 'address_line2',
+            'province', 'district', 'ward', 'postal_code', 'country',
+            'is_default', 'is_billing', 'is_shipping', 'note',
+            'full_address', 'short_address', 'administrative_address',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at']
+
+    def validate(self, data):
+        """Validate address data for Vietnam"""
+        # Kiểm tra số điện thoại VN
+        phone = data.get('phone', '')
+        if phone and not phone.startswith('0') and not phone.startswith('+84'):
+            raise serializers.ValidationError("Số điện thoại phải bắt đầu bằng 0 hoặc +84")
+
+        # Kiểm tra mã bưu điện VN (6 số)
+        postal_code = data.get('postal_code', '')
+        if postal_code and (len(postal_code) != 6 or not postal_code.isdigit()):
+            raise serializers.ValidationError("Mã bưu điện phải có 6 chữ số")
+
+        return data
+
+    def create(self, validated_data):
+        """Tạo địa chỉ mới"""
+        # Lấy Customer instance từ User hiện tại
+        user = self.context['request'].user
+        try:
+            customer = Customer.objects.get(id=user.id)
+        except Customer.DoesNotExist:
+            raise serializers.ValidationError("User is not a customer")
+        
+        validated_data['customer'] = customer
+
+        # Nếu đây là địa chỉ đầu tiên, đặt làm mặc định
+        if not Address.objects.filter(customer=customer).exists():
+            validated_data['is_default'] = True
+
+        return super().create(validated_data)
+
 class OrderDetailSerializer(serializers.ModelSerializer):
     product_name = serializers.SerializerMethodField()  # Thêm trường product_name
     thumbnail = serializers.SerializerMethodField()  # Thêm trường image
+    
     class Meta:
         model = OrderDetail
         fields = ['id', 'product', 'product_name', 'thumbnail', 'quantity', 'unit_price', 'totalPrice', 'order', 'created_at', 'updated_at', 'is_active']
 
     def get_product_name(self, obj):
         return obj.product.name if obj.product else 'Unknown Product'
+
+
         
     def get_thumbnail(self, obj):
         import urllib.parse
@@ -194,6 +244,8 @@ class OrderSerializer(serializers.ModelSerializer):
     can_claim_points = serializers.SerializerMethodField()
     coupon_code = serializers.CharField(source='coupon.code', read_only=True)
     coupon_name = serializers.CharField(source='coupon.name', read_only=True)
+    shipping_address_details = AddressSerializer(source='shipping_address', read_only=True)
+    billing_address_details = AddressSerializer(source='billing_address', read_only=True)
 
     class Meta:
         model = Order
@@ -201,7 +253,8 @@ class OrderSerializer(serializers.ModelSerializer):
         read_only_fields = [
             'user', 'total_amount', 'original_amount', 'discount_amount', 
             'created_at', 'updated_at', 'order_details', 'customer', 
-            'status', 'points_earned', 'points_claimed', 'coupon_code', 'coupon_name'
+            'status', 'points_earned', 'points_claimed', 'coupon_code', 'coupon_name',
+            'shipping_address_details', 'billing_address_details'
         ]
     
     def get_can_claim_points(self, obj):
@@ -221,53 +274,6 @@ class NewsCommentSerializer(serializers.ModelSerializer):
         model = NewsComment
         fields = ['id', 'news', 'user', 'content', 'parent_comment', 'created_at', 'parent_content']
         read_only_fields = ['id', 'news', 'user', 'created_at', 'parent_content']
-
-class AddressSerializer(serializers.ModelSerializer):
-    full_address = serializers.ReadOnlyField()
-    short_address = serializers.ReadOnlyField()
-    administrative_address = serializers.ReadOnlyField()
-
-    class Meta:
-        model = Address
-        fields = [
-            'id', 'full_name', 'phone', 'address_line1', 'address_line2',
-            'province', 'district', 'ward', 'postal_code', 'country',
-            'is_default', 'is_billing', 'is_shipping', 'note',
-            'full_address', 'short_address', 'administrative_address',
-            'created_at', 'updated_at'
-        ]
-        read_only_fields = ['created_at', 'updated_at']
-
-    def validate(self, data):
-        """Validate address data for Vietnam"""
-        # Kiểm tra số điện thoại VN
-        phone = data.get('phone', '')
-        if phone and not phone.startswith('0') and not phone.startswith('+84'):
-            raise serializers.ValidationError("Số điện thoại phải bắt đầu bằng 0 hoặc +84")
-
-        # Kiểm tra mã bưu điện VN (6 số)
-        postal_code = data.get('postal_code', '')
-        if postal_code and (len(postal_code) != 6 or not postal_code.isdigit()):
-            raise serializers.ValidationError("Mã bưu điện phải có 6 chữ số")
-
-        return data
-
-    def create(self, validated_data):
-        """Tạo địa chỉ mới"""
-        # Lấy Customer instance từ User hiện tại
-        user = self.context['request'].user
-        try:
-            customer = Customer.objects.get(id=user.id)
-        except Customer.DoesNotExist:
-            raise serializers.ValidationError("User is not a customer")
-        
-        validated_data['customer'] = customer
-
-        # Nếu đây là địa chỉ đầu tiên, đặt làm mặc định
-        if not Address.objects.filter(customer=customer).exists():
-            validated_data['is_default'] = True
-
-        return super().create(validated_data)
 
 class CustomerAddressSerializer(serializers.ModelSerializer):
     addresses = AddressSerializer(many=True, read_only=True)

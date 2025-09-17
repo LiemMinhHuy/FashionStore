@@ -37,6 +37,7 @@ const CheckOut = () => {
     const [addressDefault, setAddressDefault] = useState([]);
     const [showAddress, setShowAddress] = useState(false);
     const [selectedAddressId, setSelectedAddressId] = useState(null);
+    const [currentDisplayAddress, setCurrentDisplayAddress] = useState(null); // New state for currently displayed address
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [newAddressData, setNewAddressData] = useState({
         full_name: '',
@@ -52,8 +53,6 @@ const CheckOut = () => {
         is_shipping: true,
         note: '',
     });
-
-
 
     const fetchAddresses = async () => {
         try {
@@ -75,14 +74,25 @@ const CheckOut = () => {
 
     useEffect(() => {
         fetchAddresses();
-        // Set default address as selected if available
+    }, []);
+
+    // Set default address as selected and displayed when addresses are loaded
+    useEffect(() => {
         if (addressDefault.length > 0) {
             const defaultAddr = addressDefault.find((addr) => addr.is_default);
             if (defaultAddr) {
                 setSelectedAddressId(defaultAddr.id);
+                setCurrentDisplayAddress(defaultAddr);
+                setShippingAddress(defaultAddr);
+            } else {
+                // If no default address, use the first address
+                const firstAddr = addressDefault[0];
+                setSelectedAddressId(firstAddr.id);
+                setCurrentDisplayAddress(firstAddr);
+                setShippingAddress(firstAddr);
             }
         }
-    }, [addressDefault.length]);
+    }, [addressDefault]);
 
     // Handle new address form input changes
     const handleNewAddressChange = (e) => {
@@ -105,6 +115,8 @@ const CheckOut = () => {
             if (selectedAddress) {
                 // Update shipping address with selected address
                 setShippingAddress(selectedAddress);
+                // Update currently displayed address
+                setCurrentDisplayAddress(selectedAddress);
                 setShowAddress(false);
                 toast.success('Address selected successfully!');
             }
@@ -121,6 +133,11 @@ const CheckOut = () => {
             if (response.data) {
                 // Refresh addresses list
                 await fetchAddresses();
+                // Update current display address if this is set as default
+                if (newAddressData.is_default) {
+                    setCurrentDisplayAddress(response.data);
+                    setShippingAddress(response.data);
+                }
                 // Reset form
                 setNewAddressData({
                     full_name: '',
@@ -264,9 +281,9 @@ const CheckOut = () => {
         }
     };
 
-    const handleAddressChange = (e) => {
-        setShowAddressForm(false);
-        setShowAddress(true);
+    // Also need to handle the handleAddressChange function name issue
+    const handleAddressChange = () => {
+        setShowAddress(!showAddress);
     };
 
     const getAddressPayload = () => {
@@ -298,13 +315,14 @@ const CheckOut = () => {
     };
 
     // Update shipping address when form changes
-    React.useEffect(() => {
+    useEffect(() => {
         const payload = getAddressPayload();
         setShippingAddress(payload); // payload can be null if validation fails
     }, [fullName, phone, provinceId, districtId, wardId, street, postalCode]);
 
     const handleCheckOut = async () => {
         console.log('Clicked');
+        console.log('Current display address:', currentDisplayAddress);
         console.log('Shipping address:', shippingAddress);
         console.log('Selected address ID:', selectedAddressId);
         console.log('Payment method:', paymentMethod);
@@ -323,12 +341,17 @@ const CheckOut = () => {
             payment_method: paymentMethod,
         };
 
-        // If user has selected an existing address, use it directly
-        if (selectedAddressId) {
+        // Priority 1: Use currentDisplayAddress if available (the address shown in existing-addresses-section)
+        if (currentDisplayAddress && currentDisplayAddress.id) {
+            payload.shipping_address_id = currentDisplayAddress.id;
+            console.log('Using current display address ID:', currentDisplayAddress.id);
+        }
+        // Priority 2: If user has selected an existing address but not saved yet
+        else if (selectedAddressId) {
             payload.shipping_address_id = selectedAddressId;
             console.log('Using selected address ID:', selectedAddressId);
         }
-        // Otherwise, check if we have shipping address from form or manual input
+        // Priority 3: Check if we have shipping address from form or manual input
         else if (shippingAddress && typeof shippingAddress === 'object') {
             // If shippingAddress has an ID, it's an existing address
             if (shippingAddress.id) {
@@ -504,7 +527,7 @@ const CheckOut = () => {
                                     </button>
                                 </div>
 
-                                {showAddress ? (
+                                {showAddress && (
                                     <div className={cx('address-list-show')}>
                                         <div className={cx('add-list-container')}>
                                             <div className={cx('add-list-header')}>
@@ -591,38 +614,34 @@ const CheckOut = () => {
                                             </div>
                                         </div>
                                     </div>
-                                ) : (
-                                    <></>
                                 )}
 
                                 <div className={cx('existing-addresses-section')}>
                                     <div className={cx('address-list')}>
-                                        {addressDefault
-                                            .filter((address) => address.is_default)
-                                            .map((address, index) => (
-                                                <div
-                                                    key={address.id || index}
-                                                    className={cx('address-item', { default: address.is_default })}
-                                                >
-                                                    <div className={cx('address-content')}>
-                                                        <div className={cx('add-info')}>
-                                                            <div className={cx('add-fullname')}>
-                                                                {address.full_name}
-                                                            </div>
-                                                            <div className={cx('add-default')}>
-                                                                {address.is_default && (
-                                                                    <span className={cx('default-badge')}>Default</span>
-                                                                )}
-                                                            </div>
+                                        {currentDisplayAddress && (
+                                            <div
+                                                key={currentDisplayAddress.id}
+                                                className={cx('address-item', { default: currentDisplayAddress.is_default })}
+                                            >
+                                                <div className={cx('address-content')}>
+                                                    <div className={cx('add-info')}>
+                                                        <div className={cx('add-fullname')}>
+                                                            {currentDisplayAddress.full_name}
                                                         </div>
-                                                        <div className={cx('add-phone')}>{address.phone}</div>
-                                                        <div className={cx('add-address')}>
-                                                            {address.address_line1}, {address.ward}, {address.district},{' '}
-                                                            {address.province}
+                                                        <div className={cx('add-default')}>
+                                                            {currentDisplayAddress.is_default && (
+                                                                <span className={cx('default-badge')}>Default</span>
+                                                            )}
                                                         </div>
                                                     </div>
+                                                    <div className={cx('add-phone')}>{currentDisplayAddress.phone}</div>
+                                                    <div className={cx('add-address')}>
+                                                        {currentDisplayAddress.address_line1}, {currentDisplayAddress.ward}, {currentDisplayAddress.district},{' '}
+                                                        {currentDisplayAddress.province}
+                                                    </div>
                                                 </div>
-                                            ))}
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </>
