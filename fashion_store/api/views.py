@@ -905,8 +905,37 @@ class NewsViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         
-        # Increment view count
-        instance.increment_view_count()
+        # Implement multiple layers of view tracking to prevent double counting
+        session_key = f'news_viewed_{instance.id}'
+        
+        # Get client IP for additional tracking
+        def get_client_ip(request):
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip = x_forwarded_for.split(',')[0]
+            else:
+                ip = request.META.get('REMOTE_ADDR')
+            return ip
+        
+        client_ip = get_client_ip(request)
+        ip_session_key = f'news_viewed_{instance.id}_{client_ip}'
+        
+        # Check both session and a cache-based approach
+        should_increment = (
+            not request.session.get(session_key, False) and
+            not request.session.get(ip_session_key, False)
+        )
+        
+        if should_increment:
+            # Increment view count only once per session AND IP
+            instance.increment_view_count()
+            request.session[session_key] = True
+            request.session[ip_session_key] = True
+            # Set session to expire after 1 hour for more precise tracking
+            request.session.set_expiry(3600)  # 1 hour in seconds
+            print(f"View count incremented for article {instance.id} from IP {client_ip}")
+        else:
+            print(f"View already counted for article {instance.id} from IP {client_ip}")
         
         serializer = self.get_serializer(instance)
         return Response(serializer.data)

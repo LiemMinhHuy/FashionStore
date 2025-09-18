@@ -11,66 +11,22 @@ const cx = classNames.bind(styles);
 
 const Blog = () => {
     const [news, setNews] = useState([]);
-    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
-    const [selectedCategory, setSelectedCategory] = useState('');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [sortBy, setSortBy] = useState('-published_at');
-    const [featuredNews, setFeaturedNews] = useState([]);
 
-    // Load categories on component mount
-    useEffect(() => {
-        const loadCategories = async () => {
-            try {
-                const response = await request.get('news-categories/');
-                if (response && response.results) {
-                    setCategories(response.results);
-                }
-            } catch (err) {
-                console.error('Error loading categories:', err);
-            }
-        };
-
-        const loadFeaturedNews = async () => {
-            try {
-                const response = await request.get('news/featured/');
-                if (response && Array.isArray(response)) {
-                    setFeaturedNews(response);
-                }
-            } catch (err) {
-                console.error('Error loading featured news:', err);
-            }
-        };
-
-        loadCategories();
-        loadFeaturedNews();
-    }, []);
-
+    // Load news articles
     useEffect(() => {
         const loadNews = async () => {
             if (!hasMore && page > 1) return;
 
             setLoading(true);
             try {
-                // Build query parameters
-                const params = new URLSearchParams({
-                    page: page.toString(),
-                    ordering: sortBy
-                });
-                
-                if (selectedCategory) {
-                    params.append('category', selectedCategory);
-                }
-                
-                if (searchQuery.trim()) {
-                    params.append('search', searchQuery.trim());
-                }
-
-                const response = await request.get(`news/?${params.toString()}`);
+                const response = await request.get(`news/?page=${page}&ordering=-published_at`);
+                console.log('API Response:', response); // Debug log
                 if (response && response.results) {
+                    console.log('News items received:', response.results.length); // Debug log
                     if (page === 1) {
                         setNews(response.results);
                     } else {
@@ -82,13 +38,13 @@ const Blog = () => {
                 setLoading(false);
             } catch (err) {
                 console.error('Error occurred:', err);
-                setError('An error occurred while fetching news.');
+                setError(`An error occurred while fetching news: ${err.message}`);
                 setLoading(false);
             }
         };
 
         loadNews();
-    }, [page, hasMore, selectedCategory, searchQuery, sortBy]);
+    }, [page, hasMore]);
 
     const handleScroll = useCallback(() => {
         if (loading || !hasMore) return;
@@ -96,31 +52,6 @@ const Blog = () => {
             setPage((prevPage) => prevPage + 1);
         }
     }, [loading, hasMore]);
-
-    const handleCategoryChange = (categoryId) => {
-        setSelectedCategory(categoryId);
-        setPage(1);
-        setHasMore(true);
-        setNews([]);
-    };
-
-    const handleSearchChange = (e) => {
-        setSearchQuery(e.target.value);
-    };
-
-    const handleSearchSubmit = (e) => {
-        e.preventDefault();
-        setPage(1);
-        setHasMore(true);
-        setNews([]);
-    };
-
-    const handleSortChange = (e) => {
-        setSortBy(e.target.value);
-        setPage(1);
-        setHasMore(true);
-        setNews([]);
-    };
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -141,8 +72,25 @@ const Blog = () => {
         };
     }, [handleScroll]);
 
-    if (loading && page === 1) return <h2>Loading news...</h2>;
-    if (error) return <h2>Error: {error}</h2>;
+    if (loading && page === 1) {
+        return (
+            <div className={cx('loading')}>
+                <div className={cx('loading-spinner')}></div>
+                <p>Loading news...</p>
+            </div>
+        );
+    }
+    
+    if (error) {
+        return (
+            <div className={cx('error-container')}>
+                <h2>Error: {error}</h2>
+                <button onClick={() => window.location.reload()} className={cx('retry-button')}>
+                    Retry
+                </button>
+            </div>
+        );
+    }
 
     return (
         <div className={cx('news-list')}>
@@ -151,108 +99,16 @@ const Blog = () => {
                 <p className={cx('description')}>Stories, updates, and inspirations from our shop to you.</p>
             </div>
 
-            {/* Featured News Section */}
-            {featuredNews.length > 0 && (
-                <div className={cx('featured-section')}>
-                    <div className={cx('featured-grid')}>
-                        {featuredNews.slice(0, 3).map((item) => (
-                            <div key={item.id} className={cx('featured-item')}>
-                                <Link to={`/news/${item.id}`}>
-                                    <div className={cx('featured-image')}>
-                                        <img
-                                            src={
-                                                item.image
-                                                    ? item.image.replace('image/upload/https://', 'https://')
-                                                    : '/path/to/default/image.jpg'
-                                            }
-                                            alt={item.title}
-                                        />
-                                        {item.category && (
-                                            <span 
-                                                className={cx('category-badge')}
-                                                style={{ backgroundColor: item.category.color }}
-                                            >
-                                                {item.category.name}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className={cx('featured-content')}>
-                                        <h3>{item.title}</h3>
-                                        {item.summary && <p className={cx('summary')}>{item.summary}</p>}
-                                        <div className={cx('meta-info')}>
-                                            <span className={cx('date')}>{formatDate(item.published_at)}</span>
-                                            {item.reading_time > 0 && (
-                                                <span className={cx('reading-time')}>
-                                                    {formatReadingTime(item.reading_time)}
-                                                </span>
-                                            )}
-                                            <span className={cx('views')}>{item.view_count} views</span>
-                                        </div>
-                                    </div>
-                                </Link>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-
-            {/* Filters and Search */}
-            <div className={cx('filters-section')}>
-                <div className={cx('search-bar')}>
-                    <form onSubmit={handleSearchSubmit}>
-                        <input
-                            type="text"
-                            placeholder="Search articles..."
-                            value={searchQuery}
-                            onChange={handleSearchChange}
-                            className={cx('search-input')}
-                        />
-                        <button type="submit" className={cx('search-button')}>Search</button>
-                    </form>
-                </div>
-
-                <div className={cx('filter-controls')}>
-                    <div className={cx('category-filter')}>
-                        <label>Category:</label>
-                        <select 
-                            value={selectedCategory} 
-                            onChange={(e) => handleCategoryChange(e.target.value)}
-                            className={cx('category-select')}
-                        >
-                            <option value="">All Categories</option>
-                            {categories.map((category) => (
-                                <option key={category.id} value={category.id}>
-                                    {category.name}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    <div className={cx('sort-filter')}>
-                        <label>Sort by:</label>
-                        <select 
-                            value={sortBy} 
-                            onChange={handleSortChange}
-                            className={cx('sort-select')}
-                        >
-                            <option value="-published_at">Latest</option>
-                            <option value="published_at">Oldest</option>
-                            <option value="-view_count">Most Popular</option>
-                            <option value="title">Title A-Z</option>
-                            <option value="-title">Title Z-A</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
             {/* News Grid */}
             <div className={cx('news-grid')}>
-                <h2>All Articles</h2>
                 <div className={cx('news-items')}>
                     {news.length > 0 ? (
                         news.map((item) => (
                             <div key={item.id} className={cx('news-item')}>
-                                <Link to={`/news/${item.id}`}>
+                                <Link 
+                                    to={`/blog/${item.id}`}
+                                    onClick={() => console.log('Navigating to blog detail:', item.id)}
+                                >
                                     <div className={cx('image-container')}>
                                         <img
                                             src={
@@ -261,40 +117,30 @@ const Blog = () => {
                                                     : '/path/to/default/image.jpg'
                                             }
                                             alt={item.title}
+                                            loading="lazy"
                                         />
-                                        {item.category && (
-                                            <span 
-                                                className={cx('category-badge')}
-                                                style={{ backgroundColor: item.category.color }}
-                                            >
-                                                {item.category.name}
-                                            </span>
-                                        )}
-                                        {item.is_recently_published && (
-                                            <span className={cx('new-badge')}>New</span>
-                                        )}
                                     </div>
                                     <div className={cx('content')}>
-                                        <h3>{item.title}</h3>
+                                        <h3 className={cx('title')}>{item.title}</h3>
                                         {item.summary && (
                                             <p className={cx('summary')}>{item.summary}</p>
                                         )}
+                                        
+                                        {/* Meta Information */}
                                         <div className={cx('meta-info')}>
-                                            {item.author && (
-                                                <span className={cx('author')}>By {item.author}</span>
+                                            {item.published_at && (
+                                                <span className={cx('date')}>
+                                                    {formatDate(item.published_at)}
+                                                </span>
                                             )}
-                                            <span className={cx('date')}>
-                                                {formatDate(item.published_at)}
-                                            </span>
-                                            {item.reading_time > 0 && (
+                                            {item.reading_time && (
                                                 <span className={cx('reading-time')}>
                                                     {formatReadingTime(item.reading_time)}
                                                 </span>
                                             )}
-                                            <span className={cx('views')}>{item.view_count} views</span>
-                                            {item.comment_count > 0 && (
-                                                <span className={cx('comments')}>
-                                                    {item.comment_count} comments
+                                            {item.view_count !== undefined && (
+                                                <span className={cx('views')}>
+                                                    {item.view_count} views
                                                 </span>
                                             )}
                                         </div>
