@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from api.models import Product, Category, User, Customer, Staff, Cart, CartItem, OrderDetail, Order, Like, News, NewsComment, Address, ProductImage, Coupon, CustomerCoupon, CouponUsage
+from api.models import Product, Category, User, Customer, Staff, Cart, CartItem, OrderDetail, Order, Like, News, NewsComment, NewsCategory, Address, ProductImage, Coupon, CustomerCoupon, CouponUsage
 from django.contrib.auth.models import Permission
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -260,10 +260,43 @@ class OrderSerializer(serializers.ModelSerializer):
     def get_can_claim_points(self, obj):
         return obj.can_claim_points()
 
+class NewsCategorySerializer(serializers.ModelSerializer):
+    article_count = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = NewsCategory
+        fields = ['id', 'name', 'slug', 'description', 'color', 'icon', 'article_count']
+
 class NewsSerializer(serializers.ModelSerializer):
+    author = UserSerializer(read_only=True)
+    category = NewsCategorySerializer(read_only=True)
+    tag_list = serializers.ReadOnlyField()
+    comment_count = serializers.ReadOnlyField()
+    is_recently_published = serializers.ReadOnlyField()
+    
     class Meta:
         model = News
-        fields = '__all__'
+        fields = [
+            'id', 'title', 'slug', 'summary', 'content', 'image', 'category',
+            'author', 'published_at', 'is_published', 'is_featured',
+            'meta_title', 'meta_description', 'tags', 'tag_list', 'reading_time',
+            'view_count', 'created_at', 'updated_at', 'comment_count', 'is_recently_published'
+        ]
+        read_only_fields = ['slug', 'reading_time', 'view_count', 'created_at', 'updated_at']
+
+class NewsListSerializer(serializers.ModelSerializer):
+    """Lightweight serializer for news listing"""
+    author = serializers.StringRelatedField()
+    category = NewsCategorySerializer(read_only=True)
+    comment_count = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = News
+        fields = [
+            'id', 'title', 'slug', 'summary', 'image', 'category',
+            'author', 'published_at', 'is_featured', 'reading_time',
+            'view_count', 'comment_count', 'is_recently_published'
+        ]
 
 class NewsCommentSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

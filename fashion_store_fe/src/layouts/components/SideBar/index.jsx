@@ -17,7 +17,7 @@ function SideBar() {
 	const location = useLocation();
 	const pathname = location.pathname || '/';
 	const isHome = pathname === '/';
-	const isNews = pathname.startsWith('/news');
+	const isBlog = pathname.startsWith('/blog');
 	const isShop = pathname.startsWith('/products');
 
 	// Hàm xử lý nhấn vào mục
@@ -76,11 +76,11 @@ function SideBar() {
 			</div>
 
 			<div
-				className={cx('category', { active: isNews })}
+				className={cx('category', { active: isBlog })}
 			>
-				<Link to={'/news'}>
+				<Link to={'/blog'}>
 					{' '}
-					<p>News</p>
+					<p>Blog</p>
 				</Link>
 			</div>
 

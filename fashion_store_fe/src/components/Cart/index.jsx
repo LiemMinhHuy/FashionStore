@@ -58,50 +58,59 @@ const Cart = ({ onClose }) => {
                             <RequireAuth />
                         </div>
                     ) : (
-                        <div className={cx('title')}>
-                            <div>
-                                <p className={cx('mb-0')}>You have {cartItems.length} items in your cart</p>
-                            </div>
-                        </div>
-                    )}
-                    {cartItems.map((item) => (
-                        <div className={cx('cart')} key={item.id}>
-                            <div className={cx('cart-body')}>
-                                <div className={cx('cart-item')}>
-                                    {item.product && item.product.thumbnail ? (
-                                        <img
-                                            src={item.product.thumbnail.replace('/media/https%3A', 'https://')}
-                                            className={cx('img-fluid')}
-                                            alt={item.product.name}
-                                        />
-                                    ) : (
-                                        <div className={cx('no-image')}>No Image</div>
-                                    )}
-                                    <h5 className={cx('product-name')}>{item.product ? item.product.name : 'Unknown Product'}</h5>
+                        <>
+                            <div className={cx('title')}>
+                                <div>
+                                    <p className={cx('mb-0')}>You have {cartItems.length} items in your cart</p>
                                 </div>
-                                <div className={cx('price')}>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        value={item.quantity}
-                                        onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value))}
-                                        className={cx('quantity-input')}
-                                    />
-                                    <div style={{ width: '80px' }}>
-                                        <h5 className={cx('mb-0')}>
-                                            ${item.total_price ? parseFloat(item.total_price).toFixed(0) : '0'}
-                                        </h5>
+                            </div>
+                            {cartItems.map((item) => (
+                                <div className={cx('cart')} key={item.id}>
+                                    <div className={cx('cart-body')}>
+                                        <div className={cx('cart-item')}>
+                                            {item.product && item.product.thumbnail ? (
+                                                <img
+                                                    src={item.product.thumbnail.replace('/media/https%3A', 'https://')}
+                                                    className={cx('img-fluid')}
+                                                    alt={item.product.name}
+                                                />
+                                            ) : (
+                                                <div className={cx('no-image')}>No Image</div>
+                                            )}
+                                            <h5 className={cx('product-name')}>
+                                                {item.product ? item.product.name : 'Unknown Product'}
+                                            </h5>
+                                        </div>
+                                        <div className={cx('price')}>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={item.quantity}
+                                                onChange={(e) =>
+                                                    handleQuantityChange(item.id, parseInt(e.target.value))
+                                                }
+                                                className={cx('quantity-input')}
+                                            />
+                                            <div style={{ width: '80px' }}>
+                                                <h5 className={cx('mb-0')}>
+                                                    ${item.total_price ? parseFloat(item.total_price).toFixed(0) : '0'}
+                                                </h5>
+                                            </div>
+                                            <button
+                                                onClick={() => handleRemoveItem(item.id)}
+                                                className={cx('btn-trash')}
+                                            >
+                                                <TrashIcon className={cx('icon')} />
+                                            </button>
+                                        </div>
                                     </div>
-                                    <button onClick={() => handleRemoveItem(item.id)} className={cx('btn-trash')}>
-                                        <TrashIcon className={cx('icon')} />
-                                    </button>
                                 </div>
-                            </div>
-                        </div>
-                    ))}
-                        <button onClick={handleViewCartDetails} className={cx('view-cart-details-btn')}>
-                            View Cart Details
-                        </button>
+                            ))}
+                            <button onClick={handleViewCartDetails} className={cx('view-cart-details-btn')}>
+                                View Cart Details
+                            </button>
+                        </>
+                    )}
                 </div>
             </section>
         </div>

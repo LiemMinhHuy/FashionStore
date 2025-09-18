@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Customer, Staff, Category, Product, Cart, CartItem,
-    Order, OrderDetail, News, NewsComment, Like, Address,
+    Order, OrderDetail, News, NewsComment, NewsCategory, Like, Address,
     Coupon, CustomerCoupon, CouponUsage
 )
 from django.template.response import TemplateResponse
@@ -118,13 +118,107 @@ class OrderAdmin(admin.ModelAdmin):
     inlines = [OrderDetailInline]
 
 
+# NewsCategory Admin
+@admin.register(NewsCategory)
+class NewsCategoryAdmin(admin.ModelAdmin):
+    list_display = ['id', 'name', 'slug', 'article_count', 'color', 'created_at']
+    search_fields = ['name', 'description']
+    readonly_fields = ['slug', 'article_count', 'created_at', 'updated_at']
+    list_filter = ['created_at']
+    prepopulated_fields = {'slug': ('name',)}
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'slug', 'description')
+        }),
+        ('Appearance', {
+            'fields': ('color', 'icon')
+        }),
+        ('Statistics', {
+            'fields': ('article_count',),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+
 # News Admin
 @admin.register(News)
 class NewsAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'created_at', 'updated_at']
-    search_fields = ['title']
-    readonly_fields = ['created_at', 'updated_at']
-    list_filter = ['created_at']
+    list_display = [
+        'id', 'title', 'category', 'author', 'is_published', 'is_featured', 
+        'published_at', 'view_count', 'reading_time', 'created_at'
+    ]
+    search_fields = ['title', 'content', 'summary', 'tags']
+    list_filter = [
+        'is_published', 'is_featured', 'category', 'author', 
+        'published_at', 'created_at'
+    ]
+    readonly_fields = [
+        'slug', 'reading_time', 'view_count', 'created_at', 'updated_at',
+        'tag_list', 'comment_count', 'is_recently_published'
+    ]
+    prepopulated_fields = {'slug': ('title',)}
+    date_hierarchy = 'published_at'
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('title', 'slug', 'summary', 'category', 'author')
+        }),
+        ('Content', {
+            'fields': ('content', 'image')
+        }),
+        ('Publishing', {
+            'fields': ('is_published', 'published_at', 'is_featured')
+        }),
+        ('SEO', {
+            'fields': ('meta_title', 'meta_description'),
+            'classes': ('collapse',)
+        }),
+        ('Organization', {
+            'fields': ('tags', 'tag_list'),
+            'classes': ('collapse',)
+        }),
+        ('Statistics', {
+            'fields': ('reading_time', 'view_count', 'comment_count', 'is_recently_published'),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        })
+    )
+    
+    actions = ['mark_as_published', 'mark_as_unpublished', 'mark_as_featured', 'mark_as_unfeatured']
+    
+    def mark_as_published(self, request, queryset):
+        from django.utils import timezone
+        count = 0
+        for article in queryset.filter(is_published=False):
+            article.is_published = True
+            if not article.published_at:
+                article.published_at = timezone.now()
+            article.save()
+            count += 1
+        self.message_user(request, f'{count} articles marked as published.')
+    mark_as_published.short_description = "Mark selected articles as published"
+    
+    def mark_as_unpublished(self, request, queryset):
+        count = queryset.update(is_published=False)
+        self.message_user(request, f'{count} articles marked as unpublished.')
+    mark_as_unpublished.short_description = "Mark selected articles as unpublished"
+    
+    def mark_as_featured(self, request, queryset):
+        count = queryset.update(is_featured=True)
+        self.message_user(request, f'{count} articles marked as featured.')
+    mark_as_featured.short_description = "Mark selected articles as featured"
+    
+    def mark_as_unfeatured(self, request, queryset):
+        count = queryset.update(is_featured=False)
+        self.message_user(request, f'{count} articles marked as unfeatured.')
+    mark_as_unfeatured.short_description = "Mark selected articles as unfeatured"
 
 
 # Inline for NewsComment in NewsAdmin
@@ -307,6 +401,7 @@ admin_site.register(Category, CategoryAdmin)
 admin_site.register(Product, ProductAdmin)
 admin_site.register(Cart, CartAdmin)
 admin_site.register(Order, OrderAdmin)
+admin_site.register(NewsCategory, NewsCategoryAdmin)
 admin_site.register(News, NewsAdmin)
 admin_site.register(NewsComment, NewsCommentAdmin)
 admin_site.register(Like, LikeAdmin)

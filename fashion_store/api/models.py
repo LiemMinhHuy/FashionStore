@@ -226,13 +226,118 @@ class OrderDetail(BaseModel):
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     totalPrice = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
+class NewsCategory(BaseModel):
+    name = models.CharField(max_length=100, unique=True)
+    slug = models.SlugField(max_length=120, unique=True, blank=True)
+    description = models.TextField(blank=True, null=True)
+    color = models.CharField(max_length=7, default='#007bff', help_text="Category color in hex format")
+    icon = models.CharField(max_length=50, blank=True, null=True, help_text="Font Awesome icon class")
+    
+    class Meta:
+        ordering = ['name']
+        verbose_name = "News Category"
+        verbose_name_plural = "News Categories"
+    
+    def __str__(self):
+        return self.name
+    
+    def save(self, *args, **kwargs):
+        if not self.slug:
+            from django.utils.text import slugify
+            self.slug = slugify(self.name)
+        super().save(*args, **kwargs)
+    
+    @property
+    def article_count(self):
+        """Get count of published articles in this category"""
+        return self.news_articles.filter(is_published=True).count()
+
 class News(BaseModel):
     title = models.CharField(max_length=255, null=False)
+    slug = models.SlugField(max_length=300, unique=True, blank=True, help_text="URL slug for the news article")
+    summary = models.TextField(max_length=500, blank=True, null=True, help_text="Short summary/excerpt of the article")
     content = RichTextField()
     image = CloudinaryField('Image', null=True, blank=True)
+    category = models.ForeignKey(NewsCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='news_articles')
+    
+    # Author and publishing info
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='authored_news')
+    published_at = models.DateTimeField(null=True, blank=True, help_text="When the article was published")
+    is_published = models.BooleanField(default=False, help_text="Whether the article is published")
+    is_featured = models.BooleanField(default=False, help_text="Whether the article is featured on homepage")
+    
+    # SEO fields
+    meta_title = models.CharField(max_length=100, blank=True, null=True, help_text="SEO meta title")
+    meta_description = models.CharField(max_length=200, blank=True, null=True, help_text="SEO meta description")
+    
+    # Content organization
+    tags = models.CharField(max_length=500, blank=True, null=True, help_text="Comma-separated tags")
+    reading_time = models.PositiveIntegerField(default=0, help_text="Estimated reading time in minutes")
+    
+    # Statistics
+    view_count = models.PositiveIntegerField(default=0, help_text="Number of views")
+    
+    class Meta:
+        ordering = ['-published_at', '-created_at']
+        verbose_name = "News Article"
+        verbose_name_plural = "News Articles"
 
     def __str__(self):
         return self.title
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate slug from title if not provided
+        if not self.slug:
+            from django.utils.text import slugify
+            base_slug = slugify(self.title)
+            slug = base_slug
+            counter = 1
+            while News.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{counter}"
+                counter += 1
+            self.slug = slug
+        
+        # Calculate reading time based on content
+        if self.content:
+            import re
+            # Remove HTML tags and count words
+            text_content = re.sub(r'<[^>]+>', '', self.content)
+            word_count = len(text_content.split())
+            # Average reading speed is 200 words per minute
+            self.reading_time = max(1, word_count // 200)
+        
+        # Auto-set published_at when first published
+        if self.is_published and not self.published_at:
+            from django.utils import timezone
+            self.published_at = timezone.now()
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def is_recently_published(self):
+        """Check if article was published within last 7 days"""
+        if not self.published_at:
+            return False
+        from django.utils import timezone
+        from datetime import timedelta
+        return timezone.now() - self.published_at <= timedelta(days=7)
+    
+    @property
+    def tag_list(self):
+        """Return tags as a list"""
+        if self.tags:
+            return [tag.strip() for tag in self.tags.split(',') if tag.strip()]
+        return []
+    
+    def increment_view_count(self):
+        """Increment view count"""
+        self.view_count += 1
+        self.save(update_fields=['view_count'])
+    
+    @property
+    def comment_count(self):
+        """Get total comment count including replies"""
+        return self.comments.count()
 
 class NewsComment(BaseModel):
     news = models.ForeignKey(News, on_delete=models.CASCADE, related_name='comments')

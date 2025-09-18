@@ -14,7 +14,6 @@ import Order from '~/pages/Order';
 import OrderDetail from '~/pages/OrderDetail';
 import SignUp from '~/pages/SignUp';
 import Payment from '~/components/Payment';
-import News from '~/components/News';
 import NewsDetail from '~/components/NewsDetail';
 import PaymentSuccess from '~/pages/PaymentSuccess';
 import PaymentFailed from '~/pages/PaymentFailed';
@@ -25,6 +24,7 @@ import AdminProduct from '~/Admin/components/AdminProducts';
 import AdminCategory from '~/Admin/components/AdminCategory';
 import AdminUser from '~/Admin/components/AdminUser';
 import AdminOrder from '~/Admin/components/AdminOrder';
+import Blog from '~/pages/Blog';
 
 const publicRoutes = [
     { path: '/', component: Home },
@@ -42,7 +42,7 @@ const publicRoutes = [
     { path: '/payment', component: Payment, layout: HeaderOnly },
     { path: '/payment-success', component: PaymentSuccess, layout: null },
     { path: '/payment-failed', component: PaymentFailed, layout: null },
-    { path: '/news', component: News },
+    { path: '/blog', component: Blog },
     { path: '/news/:newsId', component: NewsDetail },
     { path: '/admin/dashboard', component: AdminDashboard, layout: AdminLayout },
     { path: '/admin/products', component: AdminProduct, layout: AdminLayout },

@@ -11,6 +11,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Permission
 from django.core.exceptions import ValidationError
+from django.db import models
 from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
@@ -28,7 +29,7 @@ from rest_framework.views import APIView
 from api import serializers, paginators
 from api.models import (
     Product, Category, User, Cart, CartItem, Order, OrderDetail, 
-    Customer, Like, News, NewsComment, Address, Coupon, CustomerCoupon, CouponUsage
+    Customer, Like, News, NewsComment, NewsCategory, Address, Coupon, CustomerCoupon, CouponUsage
 )
 
 logger = logging.getLogger(__name__)
@@ -820,22 +821,138 @@ class LikeViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 # ========================
+# NEWS CATEGORY VIEWS
+# ========================
+class NewsCategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for news categories (read-only for public access)"""
+    queryset = NewsCategory.objects.filter(is_active=True)
+    serializer_class = serializers.NewsCategorySerializer
+    
+    @action(detail=True, methods=['get'], url_path='articles')
+    def articles(self, request, pk=None):
+        """Get published articles in this category"""
+        category = self.get_object()
+        articles = News.objects.filter(
+            category=category, 
+            is_published=True, 
+            is_active=True
+        ).order_by('-published_at')
+        
+        page = self.paginate_queryset(articles)
+        if page is not None:
+            serializer = serializers.NewsListSerializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = serializers.NewsListSerializer(articles, many=True)
+        return Response(serializer.data)
+
+# ========================
 # NEWS VIEWS
 # ========================
 class NewsViewSet(viewsets.ModelViewSet):
     """ViewSet quản lý tin tức và bình luận."""
-    queryset = News.objects.all()
     serializer_class = serializers.NewsSerializer
     pagination_class = paginators.NewsPaginator
 
+    def get_queryset(self):
+        queryset = News.objects.filter(is_active=True)
+        
+        # Filter by publication status for non-staff users
+        if not (self.request.user.is_authenticated and self.request.user.is_staff):
+            queryset = queryset.filter(is_published=True)
+        
+        # Filter by category
+        category_id = self.request.query_params.get('category', None)
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+        
+        # Filter by tags
+        tags = self.request.query_params.get('tags', None)
+        if tags:
+            tag_list = [tag.strip() for tag in tags.split(',')]
+            for tag in tag_list:
+                queryset = queryset.filter(tags__icontains=tag)
+        
+        # Search functionality
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(
+                models.Q(title__icontains=search) |
+                models.Q(summary__icontains=search) |
+                models.Q(content__icontains=search) |
+                models.Q(tags__icontains=search)
+            )
+        
+        # Ordering
+        ordering = self.request.query_params.get('ordering', '-published_at')
+        if ordering in ['published_at', '-published_at', 'title', '-title', 'view_count', '-view_count']:
+            queryset = queryset.order_by(ordering)
+        
+        return queryset
+    
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return serializers.NewsListSerializer
+        return serializers.NewsSerializer
+
     def get_permissions(self):
-        if self.action == ['comment']:
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAdminUser()]
+        elif self.action in ['comment']:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
+        
+        # Increment view count
+        instance.increment_view_count()
+        
         serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+    
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+    
+    @action(detail=False, methods=['get'], url_path='featured')
+    def featured(self, request):
+        """Get featured articles"""
+        featured_articles = self.get_queryset().filter(is_featured=True)[:5]
+        serializer = serializers.NewsListSerializer(featured_articles, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='recent')
+    def recent(self, request):
+        """Get recently published articles"""
+        recent_articles = self.get_queryset().order_by('-published_at')[:10]
+        serializer = serializers.NewsListSerializer(recent_articles, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='popular')
+    def popular(self, request):
+        """Get popular articles by view count"""
+        popular_articles = self.get_queryset().order_by('-view_count')[:10]
+        serializer = serializers.NewsListSerializer(popular_articles, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'], url_path='related')
+    def related(self, request, pk=None):
+        """Get related articles based on category and tags"""
+        article = self.get_object()
+        related_queryset = self.get_queryset().exclude(pk=article.pk)
+        
+        # Prefer articles from same category
+        if article.category:
+            related_queryset = related_queryset.filter(category=article.category)
+        
+        # If we have tags, also filter by similar tags
+        if article.tags:
+            tag_list = article.tag_list
+            for tag in tag_list[:3]:  # Use top 3 tags
+                related_queryset = related_queryset.filter(tags__icontains=tag)
+        
+        related_articles = related_queryset[:5]
+        serializer = serializers.NewsListSerializer(related_articles, many=True)
         return Response(serializer.data)
 
     @action(detail=True, methods=['get', 'post'], url_path='add-comments')
