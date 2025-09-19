@@ -25,11 +25,16 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from django.core.mail import send_mail
+from django.contrib.auth.hashers import make_password
 
 from api import serializers, paginators
 from api.models import (
     Product, Category, User, Cart, CartItem, Order, OrderDetail, 
-    Customer, Like, News, NewsComment, NewsCategory, Address, Coupon, CustomerCoupon, CouponUsage
+    Customer, Like, News, NewsComment, NewsCategory, Address, Coupon, CustomerCoupon, CouponUsage, PasswordResetToken
 )
 
 logger = logging.getLogger(__name__)
@@ -228,6 +233,208 @@ class UserViewSet(viewsets.ViewSet, generics.RetrieveUpdateAPIView, generics.Lis
                 pass
     
         return Response(self.get_serializer(user).data)
+    
+
+
+
+# ========================
+# PASSWORD RESET VIEWS
+# ========================
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def forgot_password(request):
+    """Gửi mã xác thực 6 số qua email"""
+    try:
+        email = request.data.get('email')
+        if not email:
+            return Response({
+                'error': 'Email is required',
+                'message': 'Vui lòng nhập email'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Tìm user theo email
+        try:
+            user = User.objects.get(email=email, is_active=True)
+        except User.DoesNotExist:
+            return Response({
+                'error': 'Email not found',
+                'message': 'Email không tồn tại trong hệ thống'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Vô hiệu hóa các token cũ
+        PasswordResetToken.objects.filter(
+            user=user, 
+            is_used=False
+        ).update(is_used=True)
+        
+        # Tạo token mới
+        reset_token = PasswordResetToken.objects.create(
+            user=user,
+            email=email
+        )
+        
+        # Gửi email
+        subject = 'Mã xác thực đặt lại mật khẩu - Fashion Store'
+        message = f"""
+        Xin chào {user.first_name or user.username},
+        
+        Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản Fashion Store.
+        
+        Mã xác thực của bạn là: {reset_token.token}
+        
+        Mã này có hiệu lực trong 10 phút.
+        Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.
+        
+        Trân trọng,
+        Fashion Store Team
+        """
+        
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+            
+            return Response({
+                'success': True,
+                'message': 'Mã xác thực đã được gửi đến email của bạn',
+                'token_id': reset_token.id  # Để frontend track
+            }, status=status.HTTP_200_OK)
+            
+        except Exception as e:
+            logger.error(f"Failed to send email: {e}")
+            return Response({
+                'error': 'Email sending failed',
+                'message': 'Không thể gửi email. Vui lòng thử lại sau.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    except Exception as e:
+        logger.error(f"Forgot password error: {e}")
+        return Response({
+            'error': 'Internal server error',
+            'message': 'Có lỗi xảy ra. Vui lòng thử lại sau.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def verify_reset_token(request):
+    """Xác thực mã 6 số"""
+    try:
+        email = request.data.get('email')
+        token = request.data.get('token')
+        
+        if not email or not token:
+            return Response({
+                'error': 'Email and token are required',
+                'message': 'Vui lòng nhập email và mã xác thực'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Tìm token hợp lệ
+        try:
+            reset_token = PasswordResetToken.objects.get(
+                email=email,
+                token=token,
+                is_used=False
+            )
+        except PasswordResetToken.DoesNotExist:
+            return Response({
+                'error': 'Invalid token',
+                'message': 'Mã xác thực không hợp lệ'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Kiểm tra token có hợp lệ không
+        if not reset_token.is_valid():
+            return Response({
+                'error': 'Token expired or too many attempts',
+                'message': 'Mã xác thực đã hết hạn hoặc bạn đã thử quá nhiều lần'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({
+            'success': True,
+            'message': 'Mã xác thực hợp lệ',
+            'token_id': reset_token.id
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Verify token error: {e}")
+        return Response({
+            'error': 'Internal server error',
+            'message': 'Có lỗi xảy ra. Vui lòng thử lại sau.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def reset_password(request):
+    """Đặt lại mật khẩu mới"""
+    try:
+        email = request.data.get('email')
+        token = request.data.get('token')
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+        
+        if not all([email, token, new_password, confirm_password]):
+            return Response({
+                'error': 'All fields are required',
+                'message': 'Vui lòng điền đầy đủ thông tin'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if new_password != confirm_password:
+            return Response({
+                'error': 'Passwords do not match',
+                'message': 'Mật khẩu xác nhận không khớp'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if len(new_password) < 6:
+            return Response({
+                'error': 'Password too short',
+                'message': 'Mật khẩu phải có ít nhất 6 ký tự'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Tìm token hợp lệ
+        try:
+            reset_token = PasswordResetToken.objects.get(
+                email=email,
+                token=token,
+                is_used=False
+            )
+        except PasswordResetToken.DoesNotExist:
+            return Response({
+                'error': 'Invalid token',
+                'message': 'Mã xác thực không hợp lệ'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Kiểm tra token có hợp lệ không
+        if not reset_token.is_valid():
+            return Response({
+                'error': 'Token expired or too many attempts',
+                'message': 'Mã xác thực đã hết hạn hoặc bạn đã thử quá nhiều lần'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Cập nhật mật khẩu
+        user = reset_token.user
+        user.password = make_password(new_password)
+        user.save()
+        
+        # Đánh dấu token đã sử dụng
+        reset_token.mark_as_used()
+        
+        return Response({
+            'success': True,
+            'message': 'Đặt lại mật khẩu thành công. Bạn có thể đăng nhập với mật khẩu mới.'
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"Reset password error: {e}")
+        return Response({
+            'error': 'Internal server error',
+            'message': 'Có lỗi xảy ra. Vui lòng thử lại sau.'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class LoginView(APIView):
     """User login API."""

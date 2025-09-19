@@ -25,11 +25,14 @@ import AdminUser from '~/Admin/components/AdminUser';
 import AdminOrder from '~/Admin/components/AdminOrder';
 import Blog from '~/pages/Blog';
 import BlogDetail from '~/pages/BlogDetail';
+import ForgotPassword from '../components/ForgotPassword';
+
 
 const publicRoutes = [
     { path: '/', component: Home },
     { path: '/login', component: Login, layout: null },
     { path: '/signup', component: SignUp, layout: null },
+    { path: '/forgot', component: ForgotPassword, layout: null },
     { path: '/profile', component: Profile, layout: Account },
     { path: '/address', component: Address, layout: Account },
     { path: '/coupon', component: Coupon, layout: Account },

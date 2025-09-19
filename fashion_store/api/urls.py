@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework import routers
 from api import views
-from api.views import create_paypal_payment, payment_success, payment_cancel
+from api.views import create_paypal_payment, payment_success, payment_cancel, forgot_password, verify_reset_token, reset_password
 
 # Đăng ký các viewset vào router
 router = routers.DefaultRouter()
@@ -33,6 +33,11 @@ urlpatterns = [
 
     path('auth/google/', views.google_login, name='google_login'),
     path('orders/execute-paypal-payment/', views.ExecutePaypalPaymentView.as_view(), name='paypal-execute'),
+
+    # Password reset endpoints
+    path('password/forgot/', forgot_password, name='forgot_password'),
+    path('password/verify-token/', verify_reset_token, name='verify_reset_token'),
+    path('password/reset/', reset_password, name='reset_password'),
     # Bao gồm tất cả các đường dẫn từ router
     path('', include(router.urls)),
 ]

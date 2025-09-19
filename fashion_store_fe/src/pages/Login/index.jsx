@@ -118,7 +118,7 @@ export default function Login() {
                         <input type="checkbox" id="remember" name="remember" />
                         <label htmlFor="remember"> Remember me</label>
                     </div>
-                    <Link to="/user/forgot">
+                    <Link to="/forgot">
                         <p className={cx('link')}>Forgot your password?</p>
                     </Link>
                 </div>

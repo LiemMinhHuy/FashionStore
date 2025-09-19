@@ -236,3 +236,14 @@ PAYPAL_MODE = 'sandbox' # Or 'live' for production
 SITE_ID = 1  # rất quan trọng cho allauth
 LOGIN_REDIRECT_URL = "/"  # hoặc /dashboard, tùy bạn muốn redirect sau khi login
 LOGOUT_REDIRECT_URL = "/"  # nơi redirect sau khi logout
+
+# Email Configuration - SMTP chuẩn cho Gmail (sửa lỗi SSL)
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587  # Port chuẩn cho TLS
+EMAIL_USE_TLS = True  # Sử dụng TLS
+EMAIL_USE_SSL = False  # Không dùng SSL
+EMAIL_HOST_USER = 'liemhuy512@gmail.com'
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_PASSWORD')  # App password
+EMAIL_TIMEOUT = 60
+DEFAULT_FROM_EMAIL = 'Fashion Store <liemhuy512@gmail.com>'

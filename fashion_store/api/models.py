@@ -1,4 +1,3 @@
-from django.utils import timezone
 from datetime import datetime, timedelta
 from django.core.exceptions import ValidationError as DjangoValidationError
 from decimal import Decimal, ROUND_HALF_UP
@@ -13,6 +12,10 @@ from django.core import validators
 from rest_framework.exceptions import ValidationError
 from django.db.models import Sum, F, FloatField
 import uuid
+import random
+from django.utils import timezone
+
+
 
 customer_permission = [('customer', 'Has customer permissions')]
 staff_permission = [('staff', 'Has staff permissions')]
@@ -628,4 +631,50 @@ def create_welcome_coupon_for_new_customer(sender, instance, created, **kwargs):
             print(f"Error creating welcome coupon for customer {instance.id}: {e}")
 
 
+# Thêm vào cuối file d:\Fashion-Store\fashion_store\api\models.py
 
+class PasswordResetToken(BaseModel):
+    """Model để lưu trữ mã xác thực reset password"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='password_reset_tokens')
+    token = models.CharField(max_length=6, help_text="6-digit verification code")
+    email = models.EmailField(help_text="Email address where token was sent")
+    expires_at = models.DateTimeField(help_text="Token expiration time")
+    is_used = models.BooleanField(default=False, help_text="Whether token has been used")
+    attempts = models.IntegerField(default=0, help_text="Number of failed attempts")
+    
+    class Meta:
+        ordering = ['-created_at']
+        verbose_name = "Password Reset Token"
+        verbose_name_plural = "Password Reset Tokens"
+    
+    def save(self, *args, **kwargs):
+        if not self.token:
+            self.token = self.generate_token()
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timedelta(minutes=10)  # Token hết hạn sau 10 phút
+        super().save(*args, **kwargs)
+    
+    def generate_token(self):
+        """Tạo mã 6 số ngẫu nhiên"""
+        return str(random.randint(100000, 999999))
+    
+    def is_valid(self):
+        """Kiểm tra token có hợp lệ không"""
+        return (
+            not self.is_used and 
+            timezone.now() < self.expires_at and 
+            self.attempts < 3  # Giới hạn 3 lần thử
+        )
+    
+    def mark_as_used(self):
+        """Đánh dấu token đã được sử dụng"""
+        self.is_used = True
+        self.save()
+    
+    def increment_attempts(self):
+        """Tăng số lần thử"""
+        self.attempts += 1
+        self.save()
+    
+    def __str__(self):
+        return f"Reset token for {self.email} - {self.token}"
