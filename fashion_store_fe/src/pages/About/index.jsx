@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styles from './About.module.scss';
 import classNames from 'classnames/bind';
 
 const cx = classNames.bind(styles);
 
 function About() {
+    const [isNewsletterSubmitted, setIsNewsletterSubmitted] = useState(false);
+
+    const handleNewsletterSubmit = (e) => {
+        e.preventDefault();
+        // Here you can add API call to submit email
+        setIsNewsletterSubmitted(true);
+    };
+
     return (
         <div className={cx('container')}>
             <div className={cx('header')}>
@@ -139,7 +147,61 @@ function About() {
                 </div>
             </div>
 
-            
+            <section className={cx('newsletter-section')} aria-labelledby="newsletter-title">
+                <div className={cx('newsletter-inner')}>
+                    <header className={cx('newsletter-header')}>
+                        <h2 id="newsletter-title" className={cx('newsletter-title')}>
+                            Stay Ahead with Exclusive Deals!
+                        </h2>
+                        <p className={cx('newsletter-subtitle')}>
+                            Be the first to know about special offers, new product drops, and insider updates. Join our
+                            newsletter and get exclusive perks delivered straight to your inbox!
+                        </p>
+                    </header>
+
+                    <form
+                        className={cx('newsletter-form')}
+                        id="newsletterForm"
+                        onSubmit={handleNewsletterSubmit}
+                        noValidate
+                        aria-describedby="newsletter-note"
+                        data-analytics="newsletter-signup"
+                    >
+                        <label htmlFor="newsletterEmail" className={cx('sr-only')}>
+                            Enter your email
+                        </label>
+
+                        {!isNewsletterSubmitted ? (
+                            <div className={cx('newsletter-input-group')}>
+                                <input
+                                    type="email"
+                                    id="newsletterEmail"
+                                    name="email"
+                                    className={cx('newsletter-input')}
+                                    placeholder="Enter your email"
+                                    required
+                                    autoComplete="email"
+                                    aria-required="true"
+                                />
+                                <button type="submit" className={cx('newsletter-cta')}>
+                                    Sign up to newsletter
+                                </button>
+                            </div>
+                        ) : (
+                            <div className={cx('newsletter-feedback')} role="status" aria-live="polite">
+                                Thank you! Your submission has been received. We will respond in 1-2 business days.
+                            </div>
+                        )}
+                    </form>
+                </div>
+                <div className={cx('newsletter-image-wrapper')}>
+                    <img
+                        src="https://res.cloudinary.com/ddoebyozj/image/upload/v1758472233/fashion_store/gallery/7.png"
+                        alt=""
+                        className={cx('newsletter-image')}
+                    />
+                </div>
+            </section>
         </div>
     );
 }
