@@ -13,6 +13,8 @@ function DefaultLayout({ children }) {
             <div className={cx('container')}>
                 {children}
             </div>
+
+            <Footer />
         </div>
     );
 }
