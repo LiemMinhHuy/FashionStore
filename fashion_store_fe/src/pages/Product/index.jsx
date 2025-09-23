@@ -9,6 +9,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import throttle from 'lodash.throttle';
 import { Bars3BottomRightIcon, ArrowDownIcon, ArrowUpIcon } from '@heroicons/react/24/outline';
+import ProductItem from '~/components/ProductItem';
 
 const cx = classNames.bind(styles);
 
@@ -166,36 +167,7 @@ function Products() {
                     <div className={cx('product-list')}>
                         {products.length > 0 ? (
                             products.map((product) => (
-                                <div className={cx('product-item')} key={product.id}>
-                                    <Link to={`/products/${product.id}`} className={cx('image-link')}>
-                                        <div className={cx('product-image-container')}>
-                                            <img
-                                                src={
-                                                    product.thumbnail
-                                                        ? product.thumbnail
-                                                              .replace('/media/https%3A', 'https://')
-                                                              .replace('http://127.0.0.1:8000', '')
-                                                        : '/path/to/default/image.jpg'
-                                                }
-                                                alt={product.name}
-                                                className={cx('product-image')}
-                                            />
-
-                                            <img
-                                                src={product.images[0].image
-                                                    .replace('/media/https%3A', 'https://')
-                                                    .replace('http://127.0.0.1:8000', '')}
-                                                alt="product-image"
-                                                className={cx('product-image')}
-                                            />
-                                        </div>
-
-                                        <div className={cx('product-text')}>
-                                            <h3>{product.name}</h3>
-                                            <p>${product.price ? parseFloat(product.price).toFixed(0) : '0'}</p>
-                                        </div>
-                                    </Link>
-                                </div>
+                                <ProductItem key={product.id} data={product} />
                             ))
                         ) : (
                             <p>No products found in this category.</p>

@@ -25,9 +25,8 @@ import AdminUser from '~/Admin/components/AdminUser';
 import AdminOrder from '~/Admin/components/AdminOrder';
 import Blog from '~/pages/Blog';
 import BlogDetail from '~/pages/BlogDetail';
-import ForgotPassword from '../pages/ForgotPassword'
+import ForgotPassword from '../pages/ForgotPassword';
 import About from '~/pages/About';
-
 
 const publicRoutes = [
     { path: '/', component: Home },
@@ -37,7 +36,7 @@ const publicRoutes = [
     { path: '/profile', component: Profile, layout: Account },
     { path: '/address', component: Address, layout: Account },
     { path: '/coupon', component: Coupon, layout: Account },
-    { path: '/about', component: About, layout: HeaderOnly },
+    { path: '/about', component: About },
     { path: '/products', component: Product },
     { path: '/products/category/:categoryId', component: Product },
     { path: '/products/:productId', component: ProductDetailPage, layout: HeaderOnly },

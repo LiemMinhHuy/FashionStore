@@ -66,7 +66,13 @@ function SideBar() {
                                         <h4 className={cx('sub-title')}>All</h4>
                                     </Link>
                                     {category.map((cate) => (
-                                        <ProductItem key={cate.id} data={cate} />
+                                        <Link to={`/products/category/${cate.id}`} className={cx('wrapper')}>
+                                            <div className={cx('info')}>
+                                                <h4 className={cx('name')}>
+                                                    <span>{cate.name}</span>
+                                                </h4>
+                                            </div>
+                                        </Link>
                                     ))}
                                 </PopperWrapper>
                             </div>

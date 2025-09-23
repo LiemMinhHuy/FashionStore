@@ -1,37 +1,76 @@
-.wrapper {
-    display: flex;
-    align-items: center;
-    padding: 6px 16px;
-    cursor: pointer;
 
-    &:hover {
-        background: rgba(22, 24, 35, 0.03);
+.product-item {
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    transition: transform 0.2s;
+    padding-bottom: 24px;
+
+    .product-image-container {
+        position: relative;
+        width: 100%;
+        height: 360px;
+        overflow: hidden; /* Hide sliding overflow */
+    }
+
+    .product-image {
+        position: absolute;
+        top: 0;
+        width: 100%;
+        height: 360px;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.45s ease, opacity 0.3s ease;
+        will-change: transform;
+    }
+
+    /* Thumbnail visible initially */
+    .product-image-container .product-image:first-child {
+        left: 0;
+        transform: translateX(0%);
+        z-index: 2;
+        opacity: 1;
+    }
+    /* Second image sits to the right, hidden outside */
+    .product-image-container .product-image:nth-child(2) {
+        left: 100%;
+        transform: translateX(0%);
+        z-index: 1;
+        opacity: 1;
+    }
+
+    /* Slide on hover: both move left by 100% */
+    .product-image-container:hover .product-image:first-child {
+        transform: translateX(-100%);
+        opacity: 0; /* Optional fade of thumbnail */
+    }
+    .product-image-container:hover .product-image:nth-child(2) {
+        transform: translateX(-100%);
+        opacity: 1;
+    }
+
+    .product-text {
+        padding: 16px 12px 0 12px;
+        :hover {
+            cursor: pointer;
+        }
+        h3 {
+            font-size: 1.6rem;
+            margin: 0 0 6px 0;
+            color: #222;
+            font-weight: 600;
+        }
+        p {
+            position: absolute;
+            bottom: 4px;
+            left: 12px;
+            font-size: 1.6rem;
+            color: #666;
+            margin: 0;
+        }
     }
 }
 
-.avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    object-fit: cover;
-}
-
-.info {
-    flex: 1;
-    margin-left: 12px;
-}
-
-.name {
-    font-size: 1.6rem;
-    font-weight: 500;
-}
-
-.check {
-    margin-left: 6px;
-    color: rgb(32, 213, 236);
-}
-
-.username {
-    font-size: 1.4rem;
-    color: rgba(22, 24, 35, 0.5);
+.product-item:hover .btn-add-cart {
+    opacity: 1;
 }

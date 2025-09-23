@@ -29,7 +29,27 @@ export const getAllProducts = async (page = 1, sortOption = 'latest', searchQuer
     }
 };
 
-// Fetch products by category (keeping existing functionality)
+// Fetch latest products (limited quantity)
+export const getLatestProducts = async (limit = 4) => {
+    try {
+        const url = `products/?page=1&sort_option=latest`;
+        const res = await request.get(url);
+
+        if (!res || !res.results) {
+            throw new Error('Invalid response format');
+        }
+
+        // Return only the requested number of products
+        return {
+            ...res,
+            results: res.results.slice(0, limit)
+        };
+    } catch (error) {
+        console.error('Error fetching latest products:', error);
+        throw error;
+    }
+};
+
 export const getProductsByCategory = async (categoryId, page = 1, sortOption = 'latest') => {
     try {
         let url = `products/category/${categoryId}/?page=${page}`;

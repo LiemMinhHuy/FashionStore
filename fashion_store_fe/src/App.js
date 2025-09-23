@@ -5,6 +5,7 @@ import DefaultLayout from '~/layouts/DefaultLayout';
 import { MyUserContext, MyDispatchContext } from '~/utils/Context/context';
 import { MyUserReducer } from '~/utils/reducers';
 import { CartProvider } from '~/utils/Context/cartContext';
+import ScrollToTop from '~/components/ScrollToTop';
 
 function App() {
     const initialUserState = JSON.parse(localStorage.getItem('user_data')) || null;
@@ -23,6 +24,7 @@ function App() {
             <MyDispatchContext.Provider value={dispatch}>
                 <CartProvider>
                     <Router>
+                        <ScrollToTop />
                         <div className="App">
                             <Routes>
                                 {publicRoutes.map((route, index) => {
