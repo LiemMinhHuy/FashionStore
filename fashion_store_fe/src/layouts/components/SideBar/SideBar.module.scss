@@ -46,6 +46,16 @@
     font-weight: 600;
 }
 
+.sub-title{
+    padding: 6px 28px;
+    font-size: 1.6rem;
+    font-weight: 500;
+
+    &:hover {
+        background: rgba(22, 24, 35, 0.03);
+    }
+}
+
 .cate-list {
     width: 260px;
     padding: 10px;

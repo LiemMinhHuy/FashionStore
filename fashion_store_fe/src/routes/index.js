@@ -38,6 +38,7 @@ const publicRoutes = [
     { path: '/address', component: Address, layout: Account },
     { path: '/coupon', component: Coupon, layout: Account },
     { path: '/about', component: About, layout: HeaderOnly },
+    { path: '/products', component: Product },
     { path: '/products/category/:categoryId', component: Product },
     { path: '/products/:productId', component: ProductDetailPage, layout: HeaderOnly },
     { path: '/cart-details', component: CartDetail, layout: HeaderOnly },

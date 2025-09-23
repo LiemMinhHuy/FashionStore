@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import classNames from 'classnames/bind';
 import styles from './Products.module.scss';
 import * as ProductByCategoryId from '~/api/productByCateId';
+import * as ProductService from '~/api/productService';
 import { isCloseToBottom } from '~/utils/utils';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -56,7 +57,12 @@ function Products() {
             isFetchingRef.current = true;
             setLoading(true);
             try {
-                const response = await ProductByCategoryId.product(categoryId, page, sortOption);
+                let response;
+                if (!categoryId) {
+                    response = await ProductService.getAllProducts(page, sortOption);
+                } else {
+                    response = await ProductByCategoryId.product(categoryId, page, sortOption);
+                }
 
                 if (response && response.results) {
                     setProducts((prevProducts) =>
@@ -116,8 +122,17 @@ function Products() {
                     <div className={cx('sort-bar-item')}>
                         <div className={cx('sort-bar-item')}>
                             <span className={cx('breadcrumb-item')}>Shop</span>
-                            <span className={cx('breadcrumb-item')}>{'>'}</span>
-                            <span className={cx('breadcrumb-item')}>{categoryName}</span>
+                            {!categoryId ? (
+                                <>
+                                    <span className={cx('breadcrumb-item')}>{'>'}</span>
+                                    <span className={cx('breadcrumb-item')}>All</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className={cx('breadcrumb-item')}>{'>'}</span>
+                                    <span className={cx('breadcrumb-item')}>{categoryName}</span>
+                                </>
+                            )}
                         </div>
                     </div>
                     <div className={cx('sort-bar-item')} style={{ position: 'relative' }}>
@@ -157,7 +172,9 @@ function Products() {
                                             <img
                                                 src={
                                                     product.thumbnail
-                                                        ? product.thumbnail.replace('/media/https%3A', 'https://')
+                                                        ? product.thumbnail
+                                                              .replace('/media/https%3A', 'https://')
+                                                              .replace('http://127.0.0.1:8000', '')
                                                         : '/path/to/default/image.jpg'
                                                 }
                                                 alt={product.name}
@@ -165,7 +182,9 @@ function Products() {
                                             />
 
                                             <img
-                                                src={product.images[0].image.replace('/media/https%3A', 'https://')}
+                                                src={product.images[0].image
+                                                    .replace('/media/https%3A', 'https://')
+                                                    .replace('http://127.0.0.1:8000', '')}
                                                 alt="product-image"
                                                 className={cx('product-image')}
                                             />
@@ -173,11 +192,7 @@ function Products() {
 
                                         <div className={cx('product-text')}>
                                             <h3>{product.name}</h3>
-                                            <p>
-                                                ${product.price ? parseFloat(product.price).toFixed(0) : '0'}
-
-                                            </p>
-
+                                            <p>${product.price ? parseFloat(product.price).toFixed(0) : '0'}</p>
                                         </div>
                                     </Link>
                                 </div>

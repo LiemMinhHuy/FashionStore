@@ -62,6 +62,9 @@ function SideBar() {
                                     <h4 className={cx('title')}>Shop</h4>
                                     {loading && <p>Loading category...</p>}
                                     {!loading && category.length === 0 && <p>No category found</p>}
+                                    <Link to={'/products'}>
+                                        <h4 className={cx('sub-title')}>All</h4>
+                                    </Link>
                                     {category.map((cate) => (
                                         <ProductItem key={cate.id} data={cate} />
                                     ))}
