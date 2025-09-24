@@ -4,7 +4,7 @@ from rest_framework import pagination
 
 
 class ProductPaginator(pagination.PageNumberPagination):
-    page_size = 10
+    page_size = 12
 
 class UserPaginator(pagination.PageNumberPagination):
     page_size = 10
