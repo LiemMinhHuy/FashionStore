@@ -124,7 +124,7 @@ const Order = () => {
 
     const validateOrderId = (value) => {
         // Kiểm tra OrderID chỉ chứa số và chữ cái và có ít nhất 3 ký tự
-        return /^[a-zA-Z0-9]{3,}$/.test(value);
+        return /^[a-zA-Z0-9]{1,}$/.test(value);
     };
 
     const handleSearchOrder = () => {
@@ -189,7 +189,9 @@ const Order = () => {
 
     const handleClaimPoints = async (orderId) => {
         try {
-            const response = await authApi(localStorage.getItem('access_token')).post(`/orders/${orderId}/claim-points/`);
+            const response = await authApi(localStorage.getItem('access_token')).post(
+                `/orders/${orderId}/claim-points/`,
+            );
             if (response.data.message) {
                 alert(response.data.message);
                 // Refresh orders to update the UI
@@ -213,7 +215,7 @@ const Order = () => {
         // Chỉ set giá trị ban đầu khi component mount
         useEffect(() => {
             setTempFilterValues(filterValues);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+            // eslint-disable-next-line react-hooks/exhaustive-deps
         }, []);
 
         const handleTempFilterChange = (filterType, value) => {
@@ -242,6 +244,7 @@ const Order = () => {
                             <div className={cx('select-wrapper')}>
                                 <Menu
                                     items={ORDER_STATUS_OPTIONS}
+                                    hideOnClick={true}
                                     onChange={(item) => {
                                         handleTempFilterChange('status', item.value);
                                     }}
@@ -249,8 +252,9 @@ const Order = () => {
                                     <div className={cx('menu-trigger')}>
                                         <div className={cx('select-text')}>
                                             {tempFilterValues.status
-                                                ? ORDER_STATUS_OPTIONS.find((opt) => opt.value === tempFilterValues.status)
-                                                    ?.title
+                                                ? ORDER_STATUS_OPTIONS.find(
+                                                      (opt) => opt.value === tempFilterValues.status,
+                                                  )?.title
                                                 : 'All Status'}
                                         </div>
                                         <div className={cx('select-arrow')}>
@@ -266,6 +270,7 @@ const Order = () => {
                             <div className={cx('select-wrapper')}>
                                 <Menu
                                     items={ORDER_PAYMENT_METHOD_OPTIONS}
+                                    hideOnClick={true}
                                     onChange={(item) => {
                                         handleTempFilterChange('paymentMethod', item.value);
                                     }}
@@ -274,8 +279,8 @@ const Order = () => {
                                         <div className={cx('select-text')}>
                                             {tempFilterValues.paymentMethod
                                                 ? ORDER_PAYMENT_METHOD_OPTIONS.find(
-                                                    (opt) => opt.value === tempFilterValues.paymentMethod,
-                                                )?.title
+                                                      (opt) => opt.value === tempFilterValues.paymentMethod,
+                                                  )?.title
                                                 : 'All Methods'}
                                         </div>
                                         <div className={cx('select-arrow')}>
@@ -291,6 +296,7 @@ const Order = () => {
                             <div className={cx('select-wrapper')}>
                                 <Menu
                                     items={SORT_OPTIONS}
+                                    hideOnClick={true}
                                     onChange={(item) => {
                                         handleTempFilterChange('sortBy', item.value);
                                     }}
@@ -427,121 +433,128 @@ const Order = () => {
             ) : (
                 <>
                     <div className={cx('order-filter')}>
-                <div className={cx('filter-item', 'search-orderId')}>
-                    <button
-                        onClick={handleSearchOrder}
-                        className={cx('search-btn')}
-                        disabled={isSearching || !orderId.trim() || !validateOrderId(orderId)}
-                    >
-                        <MagnifyingGlassIcon className={cx('filter-icon')} />
-                    </button>
-                    <input
-                        type="text"
-                        placeholder={isSearching ? 'Searching...' : 'Search Order ID (min 3 characters)'}
-                        value={orderId}
-                        onChange={handleOrderIdChange}
-                        onKeyPress={handleKeyPress}
-                        className={cx('search-input', { invalid: orderId && !validateOrderId(orderId) })}
-                        disabled={isSearching}
-                    />
-                    {orderId && !isSearching && (
-                        <button onClick={handleClearSearch} className={cx('clear-btn')}>
-                            ×
-                        </button>
-                    )}
-                    {error && <div className={cx('error-message')}>{error}</div>}
-                </div>
+                        <div className={cx('filter-item', 'search-orderId')}>
+                            <button
+                                onClick={handleSearchOrder}
+                                className={cx('search-btn')}
+                                disabled={isSearching || !orderId.trim() || !validateOrderId(orderId)}
+                            >
+                                <MagnifyingGlassIcon className={cx('filter-icon')} />
+                            </button>
+                            <input
+                                type="text"
+                                placeholder={isSearching ? 'Searching...' : 'Search Order ID (min 3 characters)'}
+                                value={orderId}
+                                onChange={handleOrderIdChange}
+                                onKeyPress={handleKeyPress}
+                                className={cx('search-input', { invalid: orderId && !validateOrderId(orderId) })}
+                                disabled={isSearching}
+                            />
+                            {orderId && !isSearching && (
+                                <button onClick={handleClearSearch} className={cx('clear-btn')}>
+                                    ×
+                                </button>
+                            )}
+                            {error && <div className={cx('error-message')}>{error}</div>}
+                        </div>
 
-                <FilterMenu>
-                    <div className={cx('filter-item', 'btn-filter')}>
-                        <FunnelIcon className={cx('filter-icon')} />
-                        <div className={cx('filter-text')}>Filter</div>
-                    </div>
-                </FilterMenu>
-
-                <div className={cx('filter-item', 'date-range')}>
-                    <div className={cx('date-range-inputs')}>
-                        <input
-                            type="date"
-                            value={filterValues.startDate}
-                            onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
-                            className={cx('date-input')}
-                            placeholder="Start Date"
-                        />
-                        <span className={cx('date-separator')}>to</span>
-                        <input
-                            type="date"
-                            value={filterValues.endDate}
-                            onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
-                            className={cx('date-input')}
-                            placeholder="End Date"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            <div className={cx('orders')}>
-                {orders.length === 0 ? (
-                    <div className={cx('no-orders')}>
-                        {orderId ? <p>No orders found with Order ID "{orderId}".</p> : <p>No orders found.</p>}
-                    </div>
-                ) : (
-                    orders.map((order) => (
-                        <div key={order.id} className={cx('order-items')}>
-                            <div className={cx('order-item')}>
-                                <p>
-                                    <strong>ID:</strong> {order.id}
-                                </p>
-                                <p>
-                                    <strong>Date: </strong> {formatDateTime(order.created_at)}
-                                </p>
-                                <p>
-                                    <strong>Total:</strong> {parseFloat(order.total_amount).toFixed(0)}$
-                                </p>
-                                {order.points_earned > 0 && (
-                                    <p>
-                                        <strong>Points:</strong> {order.points_earned} 
-                                        {order.points_claimed ? ' (Claimed)' : ' (Available)'}
-                                    </p>
-                                )}
+                        <FilterMenu>
+                            <div className={cx('filter-item', 'btn-filter')}>
+                                <FunnelIcon className={cx('filter-icon')} />
+                                <div className={cx('filter-text')}>Filter</div>
                             </div>
-                            <div className={cx('order-item', 'order-address')}>
-                                <p>
-                                    <strong>Address:</strong> {order.shipping_address_details?.full_address || 'No shipping address'}
-                                </p>
-                                {order.shipping_address_details && (
-                                    <div className={cx('address-details')}>
-                                        {order.shipping_address_details.note && (
-                                            <p><strong>Note:</strong> {order.shipping_address_details.note}</p>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                            <div className={cx('order-item')}>
-                                <p className={cx('order-status')}>{order.status}</p>
-                                <div className={cx('btn-container')}>
-                                    <button className={cx('btn-detail')} onClick={() => navigate(`/order/${order.id}`)}>
-                                        Detail
-                                    </button>
-                                    <button className={cx('btn-reorder')}>Reorder</button>
-                                    {order.can_claim_points && (
-                                        <button 
-                                            className={cx('btn-claim-points')} 
-                                            onClick={() => handleClaimPoints(order.id)}
-                                        >
-                                            Claim {order.points_earned} Points
-                                        </button>
-                                    )}
-                                </div>
+                        </FilterMenu>
+
+                        <div className={cx('filter-item', 'date-range')}>
+                            <div className={cx('date-range-inputs')}>
+                                <input
+                                    type="date"
+                                    value={filterValues.startDate}
+                                    onChange={(e) => handleDateRangeChange('startDate', e.target.value)}
+                                    className={cx('date-input')}
+                                    placeholder="Start Date"
+                                />
+                                <span className={cx('date-separator')}>to</span>
+                                <input
+                                    type="date"
+                                    value={filterValues.endDate}
+                                    onChange={(e) => handleDateRangeChange('endDate', e.target.value)}
+                                    className={cx('date-input')}
+                                    placeholder="End Date"
+                                />
                             </div>
                         </div>
-                    ))
-                )}
-            </div>
-            {renderPagination()}
-        </>)}
-    </div>
-);
+                    </div>
+
+                    <div className={cx('orders')}>
+                        {orders.length === 0 ? (
+                            <div className={cx('no-orders')}>
+                                {orderId ? <p>No orders found with Order ID "{orderId}".</p> : <p>No orders found.</p>}
+                            </div>
+                        ) : (
+                            orders.map((order) => (
+                                <div key={order.id} className={cx('order-items')}>
+                                    <div className={cx('order-item')}>
+                                        <p>
+                                            <strong>ID:</strong> {order.id}
+                                        </p>
+                                        <p>
+                                            <strong>Date: </strong> {formatDateTime(order.created_at)}
+                                        </p>
+                                        <p>
+                                            <strong>Total:</strong> {parseFloat(order.total_amount).toFixed(0)}$
+                                        </p>
+                                        {order.points_earned > 0 && (
+                                            <p>
+                                                <strong>Points:</strong> {order.points_earned}
+                                                {order.points_claimed ? ' (Claimed)' : ' (Available)'}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className={cx('order-item', 'order-address')}>
+                                        <p>
+                                            <strong>Address:</strong>{' '}
+                                            {order.shipping_address_details?.full_address || 'No shipping address'}
+                                        </p>
+                                        {order.shipping_address_details && (
+                                            <div className={cx('address-details')}>
+                                                {order.shipping_address_details.note && (
+                                                    <p>
+                                                        <strong>Note:</strong> {order.shipping_address_details.note}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className={cx('order-item')}>
+                                        <p className={cx('order-status')}>{order.status}</p>
+                                        <div className={cx('btn-container')}>
+                                            <button
+                                                className={cx('btn-detail')}
+                                                onClick={() => navigate(`/order/${order.id}`)}
+                                            >
+                                                Detail
+                                            </button>
+                                            <button className={cx('btn-reorder')}>Reorder</button>
+                                            {order.can_claim_points && (
+                                                <button
+                                                    className={cx('btn-claim-points')}
+                                                    onClick={() => handleClaimPoints(order.id)}
+                                                >
+                                                    Claim {order.points_earned} Points
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                    {renderPagination()}
+                </>
+            )}
+        </div>
+    );
 };
 
 export default Order;

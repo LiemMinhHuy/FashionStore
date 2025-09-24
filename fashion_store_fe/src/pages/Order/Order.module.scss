@@ -205,6 +205,10 @@
             }
         }
 
+        .menu-trigger {
+            display: flex;
+        }
+
         // Date range input styles
     }
 
@@ -385,7 +389,7 @@
     text-transform: uppercase;
     font-weight: 700;
     font-size: 1.6rem;
-    
+
     &:hover {
         background-color: #1e7e34;
     }

@@ -143,9 +143,7 @@ function Profile() {
 
     const handleEditClick = (e) => {
         e.preventDefault();
-        console.log('Edit button clicked, current editing state:', editing);
         setEditing(true);
-        console.log('Editing state set to true');
     };
 
     if (loading) {
@@ -270,7 +268,6 @@ function Profile() {
                     </div>
                 </form>
             </div>
-            {console.log('Current editing state:', editing)}
         </div>
     );
 }

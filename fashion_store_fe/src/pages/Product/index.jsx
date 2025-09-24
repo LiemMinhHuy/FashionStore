@@ -44,8 +44,6 @@ function Products() {
                     response = await ProductByCategoryId.product(categoryId, currentPage, sortOption);
                 }
 
-                console.log('API Response:', response); // Debug log
-                console.log('Current Page:', currentPage); // Debug log
 
                 if (response && response.results) {
                     setProducts(response.results);
@@ -71,14 +69,6 @@ function Products() {
                         }
                         
                         setTotalPages(calculatedTotalPages);
-                        console.log('Pagination info:', {
-                            count: response.count,
-                            currentPage,
-                            currentPageSize: response.results.length,
-                            hasNext: !!response.next,
-                            hasPrevious: !!response.previous,
-                            calculatedTotalPages
-                        });
                     } else {
                         setTotalPages(1);
                     }
@@ -114,7 +104,6 @@ function Products() {
     // Handle invalid page numbers
     useEffect(() => {
         if (totalPages > 0 && currentPage > totalPages) {
-            console.log('Current page exceeds total pages, redirecting to page 1');
             setCurrentPage(1);
         }
     }, [totalPages, currentPage]);
@@ -131,7 +120,6 @@ function Products() {
     const handlePageChange = (page) => {
         // Validate page number before changing
         if (page >= 1 && page <= totalPages && page !== currentPage) {
-            console.log('Changing to page:', page); // Debug log
             setCurrentPage(page);
         } else {
             console.warn('Invalid page number:', page, 'Total pages:', totalPages); // Debug log

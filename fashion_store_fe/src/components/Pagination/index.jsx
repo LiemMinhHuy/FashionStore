@@ -2,16 +2,16 @@ import React from 'react';
 import styles from './Pagination.module.scss';
 
 function Pagination({ 
-    currentPage, 
-    totalPages, 
-    onPageChange, 
-    maxVisiblePages = 5,
-    showFirstLast = true,
-    showPrevNext = true 
+    currentPage, // Trang hien tai
+    totalPages,  // Tong so trang
+    onPageChange,  // Hàm callback khi thay đổi trang
+    maxVisiblePages = 5, // Số trang hiển thị
+    showFirstLast = true, // Hiển thị nút đầu cuối
+    showPrevNext = true // Hiển thị nút prev và next
 }) {
     // Generate array of visible page numbers
     const getVisiblePages = () => {
-        const visiblePages = [];
+        const visiblePages = []; // Mang chứa các trang hiển thị
         
         if (totalPages <= maxVisiblePages) {
             // Show all pages if total pages is less than max visible
@@ -20,8 +20,12 @@ function Pagination({
             }
         } else {
             // Calculate start and end pages
-            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            // currentPage: 7
+            // maxVisiblePages: 5 
+            // startPage: 1 
+            // endPage: 5 
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));  // Trang đầu tiên
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);  // Trang cuoi cung
             
             // Adjust if we're near the end
             if (endPage - startPage < maxVisiblePages - 1) {
