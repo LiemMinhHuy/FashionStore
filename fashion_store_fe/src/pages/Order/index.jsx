@@ -241,7 +241,7 @@ const Order = () => {
                     <div className={cx('filter-content')}>
                         <div className={cx('filter-section')}>
                             <label className={cx('filter-label')}>Status</label>
-                            <div className={cx('select-wrapper')}>
+                            <div className={cx('select-wrapper')} onClick={(e) => e.stopPropagation()}>
                                 <Menu
                                     items={ORDER_STATUS_OPTIONS}
                                     hideOnClick={true}
@@ -267,7 +267,7 @@ const Order = () => {
 
                         <div className={cx('filter-section')}>
                             <label className={cx('filter-label')}>Payment Method</label>
-                            <div className={cx('select-wrapper')}>
+                            <div className={cx('select-wrapper')} onClick={(e) => e.stopPropagation()}>
                                 <Menu
                                     items={ORDER_PAYMENT_METHOD_OPTIONS}
                                     hideOnClick={true}
@@ -293,7 +293,7 @@ const Order = () => {
 
                         <div className={cx('filter-section')}>
                             <label className={cx('filter-label')}>Sort by Time</label>
-                            <div className={cx('select-wrapper')}>
+                            <div className={cx('select-wrapper')} onClick={(e) => e.stopPropagation()}>
                                 <Menu
                                     items={SORT_OPTIONS}
                                     hideOnClick={true}
@@ -502,7 +502,7 @@ const Order = () => {
                                             <strong>Date: </strong> {formatDateTime(order.created_at)}
                                         </p>
                                         <p>
-                                            <strong>Total:</strong> {parseFloat(order.total_amount).toFixed(0)}$
+                                            <strong>Total:</strong> ${parseFloat(order.total_amount).toFixed(0)}
                                         </p>
                                         {order.points_earned > 0 && (
                                             <p>

@@ -522,7 +522,7 @@ const CheckOut = () => {
                             <>
                                 <div className={cx('shipping-info-header')}>
                                     <h3 className={cx('title')}>Delivery Information</h3>
-                                    <button className={cx('btn-change')} onClick={() => handleAddressChange()}>
+                                    <button className={cx('change-btn')} onClick={() => handleAddressChange()}>
                                         Change
                                     </button>
                                 </div>
@@ -862,7 +862,7 @@ const CheckOut = () => {
                         <h3 className={cx('title')}>Voucher/coupon</h3>
                         <input type="text" className={cx('input')} placeholder="Enter voucher code" />
                     </div>
-                    <div className={cx('box', 'note-order')}>
+                    {/* <div className={cx('box', 'note-order')}>
                         <div className={cx('note-order-header')}>
                             <h3 className={cx('title')}>Order notes</h3>
                             <label className={cx('checkbox-label')}>
@@ -895,7 +895,7 @@ const CheckOut = () => {
                                 onChange={(e) => setNote(e.target.value)}
                             />
                         )}
-                    </div>
+                    </div> */}
                 </div>
                 <div className={cx('right-col')}>
                     <div className={cx('box', 'order-summary')}>
@@ -932,12 +932,12 @@ const CheckOut = () => {
 
                             <div className={cx('item-total-container')}>
                                 <span className={cx('item-total-title')}>Shipping Fee</span>
-                                <span className={cx('item-total')}>$10</span>
+                                <span className={cx('item-total')}>$0</span>
                             </div>
 
                             <div className={cx('item-total-container')}>
                                 <span className={cx('item-total-title')}>Discount</span>
-                                <span className={cx('item-total')}>-$10</span>
+                                <span className={cx('item-total')}>0</span>
                             </div>
 
                             <span className={cx('line')}></span>

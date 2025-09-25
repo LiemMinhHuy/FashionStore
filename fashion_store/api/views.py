@@ -727,6 +727,10 @@ class OrderViewSet(viewsets.ViewSet, generics.ListCreateAPIView):
             status=order_status
         )
         
+        # Calculate and set points earned for this order
+        order.points_earned = order.calculate_points()
+        order.save()
+        
         # Create order details
         for item in cart.items.all():
             OrderDetail.objects.create(
