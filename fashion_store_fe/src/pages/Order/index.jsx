@@ -8,6 +8,7 @@ import { Wrapper as PopperWrapper } from '~/components/Popper';
 import Menu from '~/components/Popper/Menu';
 import 'tippy.js/dist/tippy.css';
 import { useNavigate } from 'react-router-dom';
+import Pagination from '~/components/Pagination';
 
 const cx = classNames.bind(styles);
 
@@ -343,44 +344,9 @@ const Order = () => {
     };
 
     const totalPages = Math.ceil(count / pageSize);
-    const renderPagination = () => {
-        if (totalPages <= 1) return null;
-        let pages = [];
-        for (let i = 1; i <= totalPages; i++) {
-            if (i === 1 || i === totalPages || (i >= page - 1 && i <= page + 1)) {
-                pages.push(
-                    <button
-                        key={i}
-                        className={cx('page-btn', { active: i === page })}
-                        onClick={() => setPage(i)}
-                        disabled={i === page}
-                    >
-                        {i}
-                    </button>,
-                );
-            } else if ((i === page - 2 && i > 2) || (i === page + 2 && i < totalPages - 1)) {
-                pages.push(<span key={i}>...</span>);
-            }
-        }
-        return (
-            <div className={cx('pagination')}>
-                <button disabled={page === 1} onClick={() => setPage(page - 1)} className={cx('btn-pagination')}>
-                    {'<'}
-                </button>
-                {pages.map((p) => (
-                    <span key={p.key || p} className={cx('btn-pagination')}>
-                        {p}
-                    </span>
-                ))}
-                <button
-                    disabled={page === totalPages}
-                    onClick={() => setPage(page + 1)}
-                    className={cx('btn-pagination')}
-                >
-                    {'>'}
-                </button>
-            </div>
-        );
+
+    const handlePageChange = (newPage) => {
+        setPage(newPage);
     };
 
     const formatDateTime = (isoString) => {
@@ -550,7 +516,14 @@ const Order = () => {
                             ))
                         )}
                     </div>
-                    {renderPagination()}
+                    <Pagination 
+                        currentPage={page}
+                        totalPages={totalPages}
+                        onPageChange={handlePageChange}
+                        maxVisiblePages={5}
+                        showFirstLast={true}
+                        showPrevNext={true}
+                    />
                 </>
             )}
         </div>
