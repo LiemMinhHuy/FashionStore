@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { CheckCircleIcon, HomeIcon, ShoppingBagIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
 import classNames from 'classnames/bind';
 import styles from './PaymentSuccess.module.scss';
-import OrderConfirmation from '~/components/OrderConfirmation';
 import { confirmPaypalPayment, getOrderByPaymentId } from '~/api/paymentService';
 import { CartContext } from '~/utils/Context/cartContext';
 
@@ -16,64 +15,62 @@ const PaymentSuccess = () => {
     const [orderData, setOrderData] = useState(null);
     const [loading, setLoading] = useState(true);
 
-
-
     useEffect(() => {
         const handlePaymentConfirmation = async () => {
             try {
-                // Lấy thông tin từ URL params
+                // Get information from URL params
                 const urlParams = new URLSearchParams(window.location.search);
                 const paymentId = urlParams.get('paymentId');
                 const payerId = urlParams.get('PayerID');
 
                 if (paymentId && payerId) {
-                    // Xác nhận thanh toán PayPal
+                    // Confirm PayPal payment
                     await confirmPaypalPayment(paymentId, payerId);
-                    
-                    // Lấy thông tin đơn hàng sau khi xác nhận
+
+                    // Get order information after confirmation
                     const orderResponse = await getOrderByPaymentId(paymentId);
                     setOrderData(orderResponse);
-                    
-                    // Clear cart sau khi thanh toán thành công
+
+                    // Clear cart after successful payment
                     try {
                         await clearCart();
                     } catch (error) {
                         console.error('Error clearing cart:', error);
                     }
                 } else if (location.state?.orderData) {
-                    // Nếu có dữ liệu từ state navigation (các phương thức thanh toán khác)
+                    // If there's data from state navigation (other payment methods)
                     setOrderData(location.state.orderData);
-                    
-                    // Clear cart sau khi thanh toán thành công
+
+                    // Clear cart after successful payment
                     try {
                         await clearCart();
                     } catch (error) {
                         console.error('Error clearing cart:', error);
                     }
                 } else {
-                    // Nếu không có payment params, có thể lấy từ URL params khác
+                    // If no payment params, try to get from other URL params
                     const orderId = urlParams.get('order_id');
                     if (orderId) {
                         setOrderData({ id: orderId });
                     } else {
-                        // Chuyển hướng đến trang thanh toán thất bại
+                        // Redirect to payment failed page
                         navigate('/payment-failed', {
                             state: {
-                                errorMessage: 'Không tìm thấy thông tin thanh toán',
-                                orderData: null
-                            }
+                                errorMessage: 'Payment information not found',
+                                orderData: null,
+                            },
                         });
                         return;
                     }
                 }
             } catch (error) {
                 console.error('Payment confirmation error:', error);
-                // Chuyển hướng đến trang thanh toán thất bại
+                // Redirect to payment failed page
                 navigate('/payment-failed', {
                     state: {
-                        errorMessage: error.response?.data?.error || 'Có lỗi xảy ra khi xác nhận thanh toán',
-                        orderData: null
-                    }
+                        errorMessage: error.response?.data?.error || 'An error occurred while confirming payment',
+                        orderData: null,
+                    },
                 });
                 return;
             } finally {
@@ -102,71 +99,67 @@ const PaymentSuccess = () => {
                 <div className={cx('success-card')}>
                     <div className={cx('loading-container')}>
                         <div className={cx('loading-spinner')}></div>
-                        <p>Đang xác nhận thanh toán...</p>
+                        <p>Confirming payment...</p>
                     </div>
                 </div>
             </div>
         );
     }
 
-    // Nếu không có orderData, có thể đã chuyển hướng hoặc có lỗi
+    // If no orderData, may have been redirected or there's an error
     if (!orderData) {
         return null;
     }
 
-
-
     return (
         <div className={cx('success-container')}>
             <div className={cx('success-card')}>
-                {/* Header với icon thành công */}
+                {/* Header with success icon */}
                 <div className={cx('success-header')}>
                     <div className={cx('success-icon-container')}>
                         <CheckCircleIcon className={cx('success-icon')} />
                     </div>
-                    <h1 className={cx('success-title')}>Thanh toán thành công!</h1>
+                    <h1 className={cx('success-title')}>Payment Successful!</h1>
                     <p className={cx('success-subtitle')}>
-                        Cảm ơn bạn đã mua hàng. Đơn hàng của bạn đã được xác nhận và đang được xử lý.
+                        Thank you for your purchase. Your order has been confirmed and is being processed.
                     </p>
                 </div>
 
-                {/* Thông tin đơn hàng */}
-                {orderData && <OrderConfirmation orderData={orderData} />}
-
-                {/* Thông tin bổ sung */}
-                <div className={cx('additional-info')}>
-                    <div className={cx('info-item')}>
-                        <DocumentTextIcon className={cx('info-icon')} />
-                        <div className={cx('info-content')}>
-                            <h3>Xác nhận đơn hàng</h3>
-                            <p>Bạn sẽ nhận được email xác nhận với chi tiết đơn hàng trong thời gian ngắn.</p>
+                {/* Payment Details */}
+                {orderData && (
+                    <div className={cx('payment-details')}>
+                        <h2 className={cx('payment-detail-title')}>Payment Details</h2>
+                        <div className={cx('payment-detail-list')}>
+                            <div className={cx('payment-detail-item')}>
+                                <span className={cx('payment-detail-label')}>Transaction ID:</span>
+                                <span className={cx('payment-detail-value')}>{orderData.id}</span>
+                            </div>
+                            <div className={cx('payment-detail-item')}>
+                                <span className={cx('payment-detail-label')}>Date:</span>
+                                <span className={cx('payment-detail-value')}>{new Date(orderData.created_at).toLocaleDateString('en-US')}</span>
+                            </div>
+                            <div className={cx('payment-detail-item')}>
+                                <span className={cx('payment-detail-label')}>Payment Method:</span>
+                                <span className={cx('payment-detail-value')}>{orderData.payment_method}</span>
+                            </div>
+                            <div className={cx('payment-detail-item')}>
+                                <span className={cx('payment-detail-label')}>Total Amount:</span>
+                                <span className={cx('payment-detail-value', 'total')}>${parseFloat(orderData.total_amount).toFixed(0)}</span>
+                            </div>
                         </div>
                     </div>
-                    <div className={cx('info-item')}>
-                        <ShoppingBagIcon className={cx('info-icon')} />
-                        <div className={cx('info-content')}>
-                            <h3>Thông tin vận chuyển</h3>
-                            <p>Chúng tôi sẽ thông báo khi đơn hàng được gửi và cung cấp thông tin theo dõi.</p>
-                        </div>
-                    </div>
-                </div>
+                )}
 
-                {/* Các nút hành động */}
+                {/* Action buttons */}
                 <div className={cx('action-buttons')}>
                     <button className={cx('btn', 'btn-primary')} onClick={handleContinueShopping}>
                         <HomeIcon className={cx('btn-icon')} />
-                        Tiếp tục mua sắm
+                        Continue Shopping
                     </button>
                     <button className={cx('btn', 'btn-secondary')} onClick={handleViewOrders}>
                         <ShoppingBagIcon className={cx('btn-icon')} />
-                        Xem tất cả đơn hàng
+                        View All Orders
                     </button>
-                    {orderData && (
-                        <button className={cx('btn', 'btn-outline')} onClick={handleViewOrderDetails}>
-                            <DocumentTextIcon className={cx('btn-icon')} />
-                            Xem chi tiết đơn hàng
-                        </button>
-                    )}
                 </div>
             </div>
         </div>

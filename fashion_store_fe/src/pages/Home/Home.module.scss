@@ -4,7 +4,7 @@
 
 .banner-container {
     position: relative;
-    margin: 0 40px;
+    margin: 0 100px;
 }
 
 .banner {
@@ -201,7 +201,7 @@
             width: 100%;
             border-radius: 8px;
             height: 100%;
-            object-fit: cover;
+            object-fit: fill;
         }
     }
 

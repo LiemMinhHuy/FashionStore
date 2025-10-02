@@ -102,42 +102,43 @@ const Footer = () => {
                                     </div>
                                 </div>
                                 <div className={cx('newsletter')}>
-                                    <h3 className={cx('newsletter-title')}>Newsletter</h3>
-                                    <form
-                                        className={cx('newsletter-form')}
-                                        id="newsletterForm"
-                                        onSubmit={handleNewsletterSubmit}
-                                        noValidate
-                                        aria-describedby="newsletter-note"
-                                        data-analytics="newsletter-signup"
-                                    >
-                                        <label htmlFor="newsletterEmail" className={cx('sr-only')}>
-                                            Enter your email
-                                        </label>
-
-                                        {!isNewsletterSubmitted ? (
-                                            <div className={cx('newsletter-input-group')}>
-                                                <input
-                                                    type="email"
-                                                    id="newsletterEmail"
-                                                    name="email"
-                                                    className={cx('newsletter-input')}
-                                                    placeholder="Enter your email"
-                                                    required
-                                                    autoComplete="email"
-                                                    aria-required="true"
-                                                />
-                                                <button type="submit" className={cx('newsletter-btn')}>
-                                                    Sign up to newsletter
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className={cx('newsletter-feedback')} role="status" aria-live="polite">
-                                                Thank you! Your submission has been received. We will respond in 1-2
-                                                business days.
-                                            </div>
-                                        )}
-                                    </form>
+                                    {!isNewsletterSubmitted ? (
+                                        <>
+                                            <h3 className={cx('newsletter-title')}>Newsletter</h3>
+                                            <form
+                                                className={cx('newsletter-form')}
+                                                id="newsletterForm"
+                                                onSubmit={handleNewsletterSubmit}
+                                                noValidate
+                                                aria-describedby="newsletter-note"
+                                                data-analytics="newsletter-signup"
+                                            >
+                                                <label htmlFor="newsletterEmail" className={cx('sr-only')}>
+                                                    Enter your email
+                                                </label>
+                                                <div className={cx('newsletter-input-group')}>
+                                                    <input
+                                                        type="email"
+                                                        id="newsletterEmail"
+                                                        name="email"
+                                                        className={cx('newsletter-input')}
+                                                        placeholder="Enter your email"
+                                                        required
+                                                        autoComplete="email"
+                                                        aria-required="true"
+                                                    />
+                                                    <button type="submit" className={cx('newsletter-btn')}>
+                                                        Sign up to newsletter
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </>
+                                    ) : (
+                                        <div className={cx('newsletter-feedback')} role="status" aria-live="polite">
+                                            Thank you! Your submission has been received. We will respond in 1-2
+                                            business days.
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             {/* Grid column */}

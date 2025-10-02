@@ -8,27 +8,14 @@
 .success-card {
     background: white;
     border-radius: 20px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
     padding: 40px;
     max-width: 600px;
     width: 100%;
     text-align: center;
-    animation: slideInUp 0.6s ease-out;
-}
-
-@keyframes slideInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 .success-header {
-    margin-bottom: 40px;
+    margin-bottom: 32px;
 }
 
 .success-icon-container {
@@ -62,26 +49,60 @@
 }
 
 
-
 .success-title {
-    font-size: 2.5rem;
+    font-size: 2.4rem;
     font-weight: 700;
-    color: #1f2937;
+    color: #000000;
     margin-bottom: 10px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
 }
 
 .success-subtitle {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     color: #6b7280;
     line-height: 1.6;
 }
 
-.additional-info {
+.payment-details {
+    border-radius: 16px;
     margin-bottom: 40px;
+}
+
+
+.payment-details .payment-detail-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #1f2937;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    
+}
+
+.payment-detail-list {
+    border: 1px solid rgba(102, 126, 234, 0.1);
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.payment-detail-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    transition: all 0.3s ease;
+}
+
+.payment-detail-label {
+    font-weight: 500;
+    color: #4b5563;
+    font-size: 1.2rem;
+}
+
+.payment-detail-value {
+    font-weight: 600;
+    color: #1f2937;
+    font-size: 1.2rem;
 }
 
 .info-item {
@@ -162,11 +183,11 @@
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #000000;
     color: white;
 
     &:hover {
-        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        opacity: 0.8;
     }
 }
 
@@ -234,14 +255,24 @@
         font-size: 2rem;
     }
 
-    .order-info {
+    .payment-details {
         padding: 20px;
     }
 
-    .order-detail-item {
+    .payment-detail-item {
         flex-direction: column;
         align-items: flex-start;
         gap: 5px;
+        text-align: left;
+        
+        &:hover {
+            padding-left: 0;
+            padding-right: 0;
+        }
+    }
+    
+    .payment-details h2 {
+        font-size: 1.3rem;
     }
 
     .action-buttons {
