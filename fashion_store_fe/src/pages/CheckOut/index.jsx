@@ -21,8 +21,6 @@ const CheckOut = () => {
     const [paymentMethod, setPaymentMethod] = useState('Cash');
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-    const [showNote, setShowNote] = useState(false);
-    const [note, setNote] = useState('');
 
     // Form states for address input
     const [fullName, setFullName] = useState('');
@@ -39,6 +37,7 @@ const CheckOut = () => {
     const [selectedAddressId, setSelectedAddressId] = useState(null);
     const [currentDisplayAddress, setCurrentDisplayAddress] = useState(null); // New state for currently displayed address
     const [showAddressForm, setShowAddressForm] = useState(false);
+    const [editingAddressId, setEditingAddressId] = useState(null);
     const [newAddressData, setNewAddressData] = useState({
         full_name: '',
         phone: '',
@@ -129,7 +128,17 @@ const CheckOut = () => {
     const handleNewAddressSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await authApi(localStorage.getItem('access_token')).post('/addresses/', newAddressData);
+            let response;
+            if (editingAddressId) {
+                // Update existing address
+                response = await authApi(localStorage.getItem('access_token')).put(`/addresses/${editingAddressId}/`, newAddressData);
+                toast.success('Address updated successfully!');
+            } else {
+                // Create new address
+                response = await authApi(localStorage.getItem('access_token')).post('/addresses/', newAddressData);
+                toast.success('New address added successfully!');
+            }
+            
             if (response.data) {
                 // Refresh addresses list
                 await fetchAddresses();
@@ -154,17 +163,54 @@ const CheckOut = () => {
                     note: '',
                 });
                 setShowAddressForm(false);
-                toast.success('New address added successfully!');
+                setEditingAddressId(null);
             }
         } catch (error) {
-            console.error('Error adding new address:', error);
-            toast.error('Failed to add new address. Please try again.');
+            console.error('Error saving address:', error);
+            const errorMessage = editingAddressId ? 'Failed to update address. Please try again.' : 'Failed to add new address. Please try again.';
+            toast.error(errorMessage);
         }
     };
 
     const handleAddForm = () => {
         setShowAddressForm(!showAddressForm);
+        setEditingAddressId(null);
+        // Reset form data when adding new address
+        setNewAddressData({
+            full_name: '',
+            phone: '',
+            address_line1: '',
+            address_line2: '',
+            province: '',
+            district: '',
+            ward: '',
+            postal_code: '',
+            is_default: false,
+            is_billing: false,
+            is_shipping: true,
+            note: '',
+        });
         // Don't close the address modal when toggling the form
+    };
+
+    // Handle edit address
+    const handleEditAddress = (address) => {
+        setEditingAddressId(address.id);
+        setNewAddressData({
+            full_name: address.full_name || '',
+            phone: address.phone || '',
+            address_line1: address.address_line1 || '',
+            address_line2: address.address_line2 || '',
+            province: address.province || '',
+            district: address.district || '',
+            ward: address.ward || '',
+            postal_code: address.postal_code || '',
+            is_default: address.is_default || false,
+            is_billing: address.is_billing || false,
+            is_shipping: address.is_shipping || true,
+            note: address.note || '',
+        });
+        setShowAddressForm(true);
     };
 
     // Get list of provinces/cities
@@ -321,13 +367,6 @@ const CheckOut = () => {
     }, [fullName, phone, provinceId, districtId, wardId, street, postalCode]);
 
     const handleCheckOut = async () => {
-        console.log('Clicked');
-        console.log('Current display address:', currentDisplayAddress);
-        console.log('Shipping address:', shippingAddress);
-        console.log('Selected address ID:', selectedAddressId);
-        console.log('Payment method:', paymentMethod);
-        console.log('Cart items:', cartItems);
-
         // Mark that user has attempted to submit
         setHasAttemptedSubmit(true);
 
@@ -532,7 +571,7 @@ const CheckOut = () => {
                                         <div className={cx('add-list-container')}>
                                             <div className={cx('add-list-header')}>
                                                 <h3 className={cx('add-list-title')}>
-                                                    {showAddressForm ? 'Add New Address' : 'Select Address'}
+                                                    {showAddressForm ? (editingAddressId ? 'Edit Address' : 'Add New Address') : 'Select Address'}
                                                 </h3>
                                                 <button
                                                     className={cx('btn-close')}
@@ -578,7 +617,10 @@ const CheckOut = () => {
                                                                 )}
                                                             </div>
 
-                                                            <button className={cx('btn-edit')}>
+                                                            <button 
+                                                                className={cx('btn-edit')}
+                                                                onClick={() => handleEditAddress(address)}
+                                                            >
                                                                 <PencilSquareIcon className={cx('icon-edit')} />
                                                             </button>
                                                         </div>
@@ -590,9 +632,26 @@ const CheckOut = () => {
                                                     formData={newAddressData}
                                                     onInputChange={handleNewAddressChange}
                                                     onSubmit={handleNewAddressSubmit}
-                                                    onCancel={() => setShowAddressForm(false)}
+                                                    onCancel={() => {
+                                                        setShowAddressForm(false);
+                                                        setEditingAddressId(null);
+                                                        setNewAddressData({
+                                                            full_name: '',
+                                                            phone: '',
+                                                            address_line1: '',
+                                                            address_line2: '',
+                                                            province: '',
+                                                            district: '',
+                                                            ward: '',
+                                                            postal_code: '',
+                                                            is_default: false,
+                                                            is_billing: false,
+                                                            is_shipping: true,
+                                                            note: '',
+                                                        });
+                                                    }}
                                                     showCheckboxes={true}
-                                                    submitButtonText="Add Address"
+                                                    submitButtonText={editingAddressId ? "Update Address" : "Add Address"}
                                                     cancelButtonText="Cancel"
                                                     className="checkout-address-form"
                                                     showTitle={true}

@@ -72,26 +72,6 @@ const PaymentFailed = () => {
                     </p>
                 </div>
 
-                {/* Thông tin đơn hàng nếu có */}
-                {orderData && (
-                    <div className={cx('order-info')}>
-                        <h2 className={cx('order-info-title')}>Order Information</h2>
-                        <div className={cx('order-details')}>
-                            <div className={cx('order-detail-item')}>
-                                <span className={cx('detail-label')}>Order ID:</span>
-                                <span className={cx('detail-value')}>#{orderData.id}</span>
-                            </div>
-                            {orderData.total_amount && (
-                                <div className={cx('order-detail-item')}>
-                                    <span className={cx('detail-label')}>Total Amount:</span>
-                                    <span className={cx('detail-value')}>
-                                        {parseFloat(orderData.total_amount).toLocaleString('vi-VN')}đ
-                                    </span>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
 
                 {/* Thông tin bổ sung */}
                 <div className={cx('additional-info')}>
@@ -126,13 +106,6 @@ const PaymentFailed = () => {
                     >
                         <HomeIcon className={cx('btn-icon')} />
                         Continue Shopping
-                    </button>
-                    <button 
-                        className={cx('btn', 'btn-outline')} 
-                        onClick={handleViewOrders}
-                    >
-                        <ShoppingBagIcon className={cx('btn-icon')} />
-                        View Orders
                     </button>
                 </div>
             </div>

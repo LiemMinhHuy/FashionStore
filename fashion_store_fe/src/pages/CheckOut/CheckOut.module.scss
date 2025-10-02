@@ -359,7 +359,6 @@
     border-top: 1px solid #e0e0e0;
 
     .btn-add {
-        flex: 1;
         color: #000;
         border-radius: 8px;
         font-size: 1.6rem;
@@ -680,6 +679,8 @@ input[type='text'].input {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 14px;
+
 
     .btn-change {
         font-size: 1.6rem;
@@ -690,7 +691,6 @@ input[type='text'].input {
 }
 
 .existing-addresses-section {
-    margin-bottom: 24px;
 
     .address-list {
         display: flex;
@@ -809,8 +809,6 @@ input[type='text'].input {
         cursor: pointer;
         position: relative;
 
-        .choose {
-        }
 
         .add-info {
 
