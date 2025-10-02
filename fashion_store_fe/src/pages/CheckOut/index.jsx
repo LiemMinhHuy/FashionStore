@@ -14,6 +14,34 @@ import AddressForm from '~/components/AddressForm';
 
 const cx = classNames.bind(styles);
 
+const paymentMethods = [
+    {
+        value: 'Cash',
+        label: 'Cash on delivery (COD)',
+        img: null,
+    },
+    {
+        value: 'PayPal',
+        label: 'PayPal',
+        img: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Paypal_2014_logo.png',
+    },
+    {
+        value: 'ZaloPay',
+        label: 'ZaloPay',
+        img: 'https://cdn.brandfetch.io/id_T-oXJkN/w/1624/h/1624/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1751816051661',
+    },
+    {
+        value: 'VNPay',
+        label: 'VNPay',
+        img: 'https://vinadesign.vn/uploads/images/2023/05/vnpay-logo-vinadesign-25-12-57-55.jpg',
+    },
+    {
+        value: 'Momo',
+        label: 'Momo',
+        img: 'https://cdn.brandfetch.io/idn4xaCzTm/w/1666/h/1666/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1734358527203',
+    },
+];
+
 const CheckOut = () => {
     const { cartItems, clearCart } = useContext(CartContext);
     const [shippingAddress, setShippingAddress] = useState({});
@@ -38,6 +66,11 @@ const CheckOut = () => {
     const [currentDisplayAddress, setCurrentDisplayAddress] = useState(null); // New state for currently displayed address
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [editingAddressId, setEditingAddressId] = useState(null);
+    const [selectedCoupon, setSelectedCoupon] = useState(null);
+    const [couponCode, setCouponCode] = useState('');
+    const [couponLoading, setCouponLoading] = useState(false);
+    const [showCouponModal, setShowCouponModal] = useState(false);
+    const [availableCoupons, setAvailableCoupons] = useState([]);
     const [newAddressData, setNewAddressData] = useState({
         full_name: '',
         phone: '',
@@ -53,6 +86,77 @@ const CheckOut = () => {
         note: '',
     });
 
+    // Fetch available coupons for customer
+    const fetchAvailableCoupons = async () => {
+        try {
+            setCouponLoading(true);
+            const response = await authApi(localStorage.getItem('access_token')).get('/coupons/my-coupons/');
+            setAvailableCoupons(response.data || []);
+        } catch (error) {
+            console.error('Error fetching coupons:', error);
+            toast.error('Failed to load coupons. Please try again later.');
+            setAvailableCoupons([]);
+        } finally {
+            setCouponLoading(false);
+        }
+    };
+
+    // Handle coupon modal
+    const handleCoupon = () => {
+        setShowCouponModal(true);
+        if (availableCoupons.length === 0) {
+            fetchAvailableCoupons();
+        }
+    };
+
+    // Handle coupon selection
+    const handleCouponSelection = (coupon) => {
+        setSelectedCoupon(coupon);
+        setCouponCode(coupon.code);
+    };
+
+    // Apply selected coupon
+    const handleApplyCoupon = () => {
+        if (selectedCoupon) {
+            toast.success(`Coupon "${selectedCoupon.code}" applied successfully!`);
+            setShowCouponModal(false);
+        } else {
+            toast.error('Please select a coupon first.');
+        }
+    };
+
+    // Remove applied coupon
+    const handleRemoveCoupon = () => {
+        setSelectedCoupon(null);
+        setCouponCode('');
+        toast.info('Coupon removed.');
+    };
+
+    // Calculate total first
+    const total = useMemo(() => {
+        return cartItems.reduce((sum, item) => {
+            const price = parseFloat(item.product.price);
+            return sum + item.quantity * (isNaN(price) ? 0 : price);
+        }, 0);
+    }, [cartItems]);
+
+    // Calculate discount amount
+    const calculateDiscountAmount = () => {
+        if (!selectedCoupon) return 0;
+        
+        if (selectedCoupon.discount_type === 'percentage') {
+            const discount = total * (selectedCoupon.discount_value / 100);
+            return selectedCoupon.max_discount_amount ? 
+                Math.min(discount, selectedCoupon.max_discount_amount) : discount;
+        } else if (selectedCoupon.discount_type === 'fixed_amount') {
+            return Math.min(selectedCoupon.discount_value, total);
+        }
+        return 0;
+    };
+
+    const discountAmount = calculateDiscountAmount();
+    const finalTotal = total - discountAmount;
+    
     const fetchAddresses = async () => {
         try {
             const response = await authApi(localStorage.getItem('access_token')).get('/addresses/');
@@ -131,14 +235,17 @@ const CheckOut = () => {
             let response;
             if (editingAddressId) {
                 // Update existing address
-                response = await authApi(localStorage.getItem('access_token')).put(`/addresses/${editingAddressId}/`, newAddressData);
+                response = await authApi(localStorage.getItem('access_token')).put(
+                    `/addresses/${editingAddressId}/`,
+                    newAddressData,
+                );
                 toast.success('Address updated successfully!');
             } else {
                 // Create new address
                 response = await authApi(localStorage.getItem('access_token')).post('/addresses/', newAddressData);
                 toast.success('New address added successfully!');
             }
-            
+
             if (response.data) {
                 // Refresh addresses list
                 await fetchAddresses();
@@ -167,7 +274,9 @@ const CheckOut = () => {
             }
         } catch (error) {
             console.error('Error saving address:', error);
-            const errorMessage = editingAddressId ? 'Failed to update address. Please try again.' : 'Failed to add new address. Please try again.';
+            const errorMessage = editingAddressId
+                ? 'Failed to update address. Please try again.'
+                : 'Failed to add new address. Please try again.';
             toast.error(errorMessage);
         }
     };
@@ -221,13 +330,6 @@ const CheckOut = () => {
 
     // Get list of wards based on selected district
     const wards = districtId ? findById(districtId)?.children || [] : [];
-
-    const total = useMemo(() => {
-        return cartItems.reduce((sum, item) => {
-            const price = parseFloat(item.product.price);
-            return sum + item.quantity * (isNaN(price) ? 0 : price);
-        }, 0);
-    }, [cartItems]);
 
     // Form validation functions
     const validatePhone = (phoneNumber) => {
@@ -327,7 +429,7 @@ const CheckOut = () => {
         }
     };
 
-    // Also need to handle the handleAddressChange function name issue
+    // Also need to handle the handleAddressChange function
     const handleAddressChange = () => {
         setShowAddress(!showAddress);
     };
@@ -517,34 +619,6 @@ const CheckOut = () => {
     //     }
     // };
 
-    const paymentMethods = [
-        {
-            value: 'Cash',
-            label: 'Cash on delivery (COD)',
-            img: null,
-        },
-        {
-            value: 'ZaloPay',
-            label: 'ZaloPay',
-            img: 'https://cdn.brandfetch.io/id_T-oXJkN/w/1624/h/1624/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1751816051661',
-        },
-        {
-            value: 'VNPay',
-            label: 'VNPay',
-            img: 'https://vinadesign.vn/uploads/images/2023/05/vnpay-logo-vinadesign-25-12-57-55.jpg',
-        },
-        {
-            value: 'Momo',
-            label: 'Momo',
-            img: 'https://cdn.brandfetch.io/idn4xaCzTm/w/1666/h/1666/theme/dark/icon.jpeg?c=1bxid64Mup7aczewSAYMX&t=1734358527203',
-        },
-        {
-            value: 'PayPal',
-            label: 'PayPal',
-            img: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/Paypal_2014_logo.png',
-        },
-    ];
-
     return (
         <div className={cx('checkout-container')}>
             <div className={cx('header-checkout')}>
@@ -571,7 +645,11 @@ const CheckOut = () => {
                                         <div className={cx('add-list-container')}>
                                             <div className={cx('add-list-header')}>
                                                 <h3 className={cx('add-list-title')}>
-                                                    {showAddressForm ? (editingAddressId ? 'Edit Address' : 'Add New Address') : 'Select Address'}
+                                                    {showAddressForm
+                                                        ? editingAddressId
+                                                            ? 'Edit Address'
+                                                            : 'Add New Address'
+                                                        : 'Select Address'}
                                                 </h3>
                                                 <button
                                                     className={cx('btn-close')}
@@ -617,7 +695,7 @@ const CheckOut = () => {
                                                                 )}
                                                             </div>
 
-                                                            <button 
+                                                            <button
                                                                 className={cx('btn-edit')}
                                                                 onClick={() => handleEditAddress(address)}
                                                             >
@@ -651,7 +729,9 @@ const CheckOut = () => {
                                                         });
                                                     }}
                                                     showCheckboxes={true}
-                                                    submitButtonText={editingAddressId ? "Update Address" : "Add Address"}
+                                                    submitButtonText={
+                                                        editingAddressId ? 'Update Address' : 'Add Address'
+                                                    }
                                                     cancelButtonText="Cancel"
                                                     className="checkout-address-form"
                                                     showTitle={true}
@@ -680,7 +760,9 @@ const CheckOut = () => {
                                         {currentDisplayAddress && (
                                             <div
                                                 key={currentDisplayAddress.id}
-                                                className={cx('address-item', { default: currentDisplayAddress.is_default })}
+                                                className={cx('address-item', {
+                                                    default: currentDisplayAddress.is_default,
+                                                })}
                                             >
                                                 <div className={cx('address-content')}>
                                                     <div className={cx('add-info')}>
@@ -695,7 +777,8 @@ const CheckOut = () => {
                                                     </div>
                                                     <div className={cx('add-phone')}>{currentDisplayAddress.phone}</div>
                                                     <div className={cx('add-address')}>
-                                                        {currentDisplayAddress.address_line1}, {currentDisplayAddress.ward}, {currentDisplayAddress.district},{' '}
+                                                        {currentDisplayAddress.address_line1},{' '}
+                                                        {currentDisplayAddress.ward}, {currentDisplayAddress.district},{' '}
                                                         {currentDisplayAddress.province}
                                                     </div>
                                                 </div>
@@ -918,47 +1001,137 @@ const CheckOut = () => {
                         </div>
                     </div>
                     <div className={cx('box', 'voucher')}>
-                        <h3 className={cx('title')}>Voucher/coupon</h3>
-                        <input type="text" className={cx('input')} placeholder="Enter voucher code" />
-                    </div>
-                    {/* <div className={cx('box', 'note-order')}>
-                        <div className={cx('note-order-header')}>
-                            <h3 className={cx('title')}>Order notes</h3>
-                            <label className={cx('checkbox-label')}>
-                                <input
-                                    type="checkbox"
-                                    checked={showNote}
-                                    onChange={() => setShowNote((prev) => !prev)}
-                                    className={cx('checkbox-input')}
-                                />
-                                <span
-                                    style={{
-                                        background: showNote ? '#219a6f' : '#ccc',
-                                    }}
-                                    className={cx('checkbox')}
-                                >
-                                    <span
-                                        style={{
-                                            left: showNote ? 20 : 2,
-                                        }}
-                                        className={cx('checkbox-icon')}
-                                    />
-                                </span>
-                            </label>
+                        <div className={cx('voucher-header')}>
+                            <h3 className={cx('title')}>Voucher/coupon</h3>
+                            <button className={cx('view-all-btn')} onClick={handleCoupon}>
+                                View All Coupons
+                            </button>
                         </div>
-                        {showNote && (
-                            <textarea
-                                className={cx('input-note')}
-                                placeholder="Enter your request here"
-                                value={note}
-                                onChange={(e) => setNote(e.target.value)}
-                            />
+                        
+                        {selectedCoupon ? (
+                            <div className={cx('applied-coupon')}>
+                                <div className={cx('coupon-info')}>
+                                    <span className={cx('coupon-code')}>{selectedCoupon.code}</span>
+                                    <span className={cx('coupon-description')}>{selectedCoupon.description}</span>
+                                    <span className={cx('coupon-discount')}>-${discountAmount.toFixed(2)}</span>
+                                </div>
+                                <button className={cx('remove-coupon-btn')} onClick={handleRemoveCoupon}>
+                                    Remove
+                                </button>
+                            </div>
+                        ) : (
+                            <div className={cx('voucher-input')}>
+                                <input
+                                    type="text"
+                                    className={cx('input')}
+                                    placeholder="Enter your coupon code (if you have one)"
+                                    value={couponCode}
+                                    onChange={(e) => setCouponCode(e.target.value)}
+                                />
+                                <span className={cx('apply-btn')}>Apply</span>
+                            </div>
                         )}
-                    </div> */}
+                        
+                        {/* Coupon Modal */}
+                        {showCouponModal && (
+                            <div className={cx('modal-overlay')}>
+                                <div className={cx('coupon-modal')}>
+                                    <div className={cx('coupon-modal-header')}>
+                                        <h3 className={cx('title')}>My Coupons</h3>
+                                        <button 
+                                            className={cx('modal-close')} 
+                                            onClick={() => setShowCouponModal(false)}
+                                        >
+                                            &times;
+                                        </button>
+                                    </div>
+                                    
+                                    <div className={cx('coupon-modal-content')}>
+                                        {couponLoading ? (
+                                            <div className={cx('coupon-loading')}>
+                                                <div className={cx('loading-spinner')}></div>
+                                                <p>Loading coupons...</p>
+                                            </div>
+                                        ) : availableCoupons.length > 0 ? (
+                                            <div className={cx('coupon-list')}>
+                                                {availableCoupons.map((coupon) => {
+                                                    const isSelected = selectedCoupon?.id === coupon.id;
+                                                    const canUse = coupon.can_use?.can_use !== false;
+                                                    const isExpired = new Date(coupon.valid_until) < new Date();
+                                                    
+                                                    return (
+                                                        <div 
+                                                            key={coupon.id} 
+                                                            className={cx('coupon-item', {
+                                                                selected: isSelected,
+                                                                disabled: !canUse || isExpired
+                                                            })}
+                                                            onClick={() => canUse && !isExpired && handleCouponSelection(coupon)}
+                                                        >
+                                                            <div className={cx('coupon-content')}>
+                                                                <div className={cx('coupon-header')}>
+                                                                    <span className={cx('coupon-code')}>{coupon.code}</span>
+                                                                    <span className={cx('coupon-type', coupon.discount_type)}>
+                                                                        {coupon.discount_type === 'percentage' 
+                                                                            ? `${coupon.discount_value}% OFF`
+                                                                            : `$${coupon.discount_value} OFF`
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                                <div className={cx('coupon-name')}>{coupon.name}</div>
+                                                                <div className={cx('coupon-description')}>{coupon.description}</div>
+                                                                <div className={cx('coupon-conditions')}>
+                                                                    {coupon.min_order_amount > 0 && (
+                                                                        <span>Min. order: ${coupon.min_order_amount}</span>
+                                                                    )}
+                                                                    <span>Expires: {new Date(coupon.valid_until).toLocaleDateString()}</span>
+                                                                </div>
+                                                                {!canUse && (
+                                                                    <div className={cx('coupon-error')}>
+                                                                        {coupon.can_use?.message || 'Cannot use this coupon'}
+                                                                    </div>
+                                                                )}
+                                                                {isExpired && (
+                                                                    <div className={cx('coupon-error')}>This coupon has expired</div>
+                                                                )}
+                                                            </div>
+                                                            {isSelected && (
+                                                                <div className={cx('selected-indicator')}>✓</div>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className={cx('no-coupons')}>
+                                                <p>No coupons available at the moment.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    <div className={cx('coupon-modal-footer')}>
+                                        <button 
+                                            className={cx('btn-cancel')} 
+                                            onClick={() => setShowCouponModal(false)}
+                                        >
+                                            Cancel
+                                        </button>
+                                        <button 
+                                            className={cx('btn-apply')} 
+                                            onClick={handleApplyCoupon}
+                                            disabled={!selectedCoupon}
+                                        >
+                                            Apply Coupon
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
                 <div className={cx('right-col')}>
                     <div className={cx('box', 'order-summary')}>
-                        <h3 className={cx('title')}>Order Summary</h3>
+                        <h3 className={cx('title')}>Order</h3>
                         <div className={cx('cart-items')}>
                             {cartItems.map((item) => (
                                 <div key={item.id} className={cx('cart-item')}>
@@ -996,14 +1169,14 @@ const CheckOut = () => {
 
                             <div className={cx('item-total-container')}>
                                 <span className={cx('item-total-title')}>Discount</span>
-                                <span className={cx('item-total')}>0</span>
+                                <span className={cx('item-total', 'discount')}>-${discountAmount.toFixed(2)}</span>
                             </div>
 
                             <span className={cx('line')}></span>
 
                             <div className={cx('item-total-container')}>
                                 <span className={cx('item-total-title')}>Total</span>
-                                <span className={cx('item-total')}>${total.toFixed(0)}</span>
+                                <span className={cx('item-total')}>${finalTotal.toFixed(2)}</span>
                             </div>
 
                             <div className={cx('item-total-container')}>
