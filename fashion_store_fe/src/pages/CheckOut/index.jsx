@@ -2,6 +2,7 @@ import React, { useState, useContext, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CartContext } from '~/utils/Context/cartContext';
 import styles from './CheckOut.module.scss';
+import Barcode from 'react-barcode';
 import classNames from 'classnames/bind';
 import { getAuthApi } from '~/utils/request';
 import { toast } from 'react-toastify';
@@ -143,11 +144,12 @@ const CheckOut = () => {
     // Calculate discount amount
     const calculateDiscountAmount = () => {
         if (!selectedCoupon) return 0;
-        
+
         if (selectedCoupon.discount_type === 'percentage') {
             const discount = total * (selectedCoupon.discount_value / 100);
-            return selectedCoupon.max_discount_amount ? 
-                Math.min(discount, selectedCoupon.max_discount_amount) : discount;
+            return selectedCoupon.max_discount_amount
+                ? Math.min(discount, selectedCoupon.max_discount_amount)
+                : discount;
         } else if (selectedCoupon.discount_type === 'fixed_amount') {
             return Math.min(selectedCoupon.discount_value, total);
         }
@@ -156,7 +158,7 @@ const CheckOut = () => {
 
     const discountAmount = calculateDiscountAmount();
     const finalTotal = total - discountAmount;
-    
+
     const fetchAddresses = async () => {
         try {
             const response = await authApi(localStorage.getItem('access_token')).get('/addresses/');
@@ -1007,13 +1009,49 @@ const CheckOut = () => {
                                 View All Coupons
                             </button>
                         </div>
-                        
+
                         {selectedCoupon ? (
-                            <div className={cx('applied-coupon')}>
-                                <div className={cx('coupon-info')}>
-                                    <span className={cx('coupon-code')}>{selectedCoupon.code}</span>
-                                    <span className={cx('coupon-description')}>{selectedCoupon.description}</span>
-                                    <span className={cx('coupon-discount')}>-${discountAmount.toFixed(2)}</span>
+                            <div>
+                                <div key={selectedCoupon.id} className={cx('coupon-item', {})}>
+                                    <div className={cx('coupon-left')}>
+                                        <p className={cx('coupon-code')}>{selectedCoupon.code}</p>
+                                    </div>
+
+                                    <div className={cx('coupon-center')}>
+                                        <div className={cx('coupon-content')}>
+                                            <h2>
+                                                {selectedCoupon.discount_type === 'percentage'
+                                                    ? `${selectedCoupon.discount_value}% OFF`
+                                                    : `$${selectedCoupon.discount_value} OFF`}
+                                            </h2>
+                                            <h3>Coupon</h3>
+                                            <small>
+                                                Valid until {new Date(selectedCoupon.valid_until).toLocaleDateString()}
+                                            </small>
+                                        </div>
+                                    </div>
+
+                                    <div className={cx('coupon-right')}>
+                                        <div className={cx('barcode-container')}>
+                                            <div className={cx('barcode')}>
+                                                <Barcode
+                                                    value={`${selectedCoupon.id + 7878521112}`}
+                                                    width={1.2}
+                                                    height={40}
+                                                    fontSize={10}
+                                                    background="transparent"
+                                                    lineColor="#1a202c"
+                                                    displayValue={false}
+                                                    format="CODE128"
+                                                    style={{
+                                                        transform: 'rotate(-90deg)',
+                                                        transformOrigin: 'center',
+                                                    }}
+                                                />
+                                            </div>
+                                            <div className={cx('barcode-text')}>{selectedCoupon.id + 7878521112}</div>
+                                        </div>
+                                    </div>
                                 </div>
                                 <button className={cx('remove-coupon-btn')} onClick={handleRemoveCoupon}>
                                     Remove
@@ -1031,21 +1069,18 @@ const CheckOut = () => {
                                 <span className={cx('apply-btn')}>Apply</span>
                             </div>
                         )}
-                        
+
                         {/* Coupon Modal */}
                         {showCouponModal && (
                             <div className={cx('modal-overlay')}>
                                 <div className={cx('coupon-modal')}>
                                     <div className={cx('coupon-modal-header')}>
                                         <h3 className={cx('title')}>My Coupons</h3>
-                                        <button 
-                                            className={cx('modal-close')} 
-                                            onClick={() => setShowCouponModal(false)}
-                                        >
+                                        <button className={cx('modal-close')} onClick={() => setShowCouponModal(false)}>
                                             &times;
                                         </button>
                                     </div>
-                                    
+
                                     <div className={cx('coupon-modal-content')}>
                                         {couponLoading ? (
                                             <div className={cx('coupon-loading')}>
@@ -1058,46 +1093,73 @@ const CheckOut = () => {
                                                     const isSelected = selectedCoupon?.id === coupon.id;
                                                     const canUse = coupon.can_use?.can_use !== false;
                                                     const isExpired = new Date(coupon.valid_until) < new Date();
-                                                    
+
                                                     return (
-                                                        <div 
-                                                            key={coupon.id} 
+                                                        <div
+                                                            key={coupon.id}
                                                             className={cx('coupon-item', {
                                                                 selected: isSelected,
-                                                                disabled: !canUse || isExpired
+                                                                disabled: !canUse || isExpired,
                                                             })}
-                                                            onClick={() => canUse && !isExpired && handleCouponSelection(coupon)}
+                                                            onClick={() =>
+                                                                canUse && !isExpired && handleCouponSelection(coupon)
+                                                            }
                                                         >
-                                                            <div className={cx('coupon-content')}>
-                                                                <div className={cx('coupon-header')}>
-                                                                    <span className={cx('coupon-code')}>{coupon.code}</span>
-                                                                    <span className={cx('coupon-type', coupon.discount_type)}>
-                                                                        {coupon.discount_type === 'percentage' 
+                                                            <div className={cx('coupon-left')}>
+                                                                <p className={cx('coupon-code')}>{coupon.code}</p>
+                                                            </div>
+
+                                                            <div className={cx('coupon-center')}>
+                                                                <div className={cx('coupon-content')}>
+                                                                    <h2>
+                                                                        {coupon.discount_type === 'percentage'
                                                                             ? `${coupon.discount_value}% OFF`
-                                                                            : `$${coupon.discount_value} OFF`
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                                <div className={cx('coupon-name')}>{coupon.name}</div>
-                                                                <div className={cx('coupon-description')}>{coupon.description}</div>
-                                                                <div className={cx('coupon-conditions')}>
-                                                                    {coupon.min_order_amount > 0 && (
-                                                                        <span>Min. order: ${coupon.min_order_amount}</span>
-                                                                    )}
-                                                                    <span>Expires: {new Date(coupon.valid_until).toLocaleDateString()}</span>
+                                                                            : `$${coupon.discount_value} OFF`}
+                                                                    </h2>
+                                                                    <h3>Coupon</h3>
+                                                                    <small>
+                                                                        Valid until{' '}
+                                                                        {new Date(
+                                                                            coupon.valid_until,
+                                                                        ).toLocaleDateString()}
+                                                                    </small>
                                                                 </div>
                                                                 {!canUse && (
                                                                     <div className={cx('coupon-error')}>
-                                                                        {coupon.can_use?.message || 'Cannot use this coupon'}
+                                                                        {coupon.can_use?.message ||
+                                                                            'Cannot use this coupon'}
                                                                     </div>
                                                                 )}
                                                                 {isExpired && (
-                                                                    <div className={cx('coupon-error')}>This coupon has expired</div>
+                                                                    <div className={cx('coupon-error')}>
+                                                                        This coupon has expired
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                            {isSelected && (
-                                                                <div className={cx('selected-indicator')}>✓</div>
-                                                            )}
+
+                                                            <div className={cx('coupon-right')}>
+                                                                <div className={cx('barcode-container')}>
+                                                                    <div className={cx('barcode')}>
+                                                                        <Barcode
+                                                                            value={`${coupon.id + 7878521112}`}
+                                                                            width={1.2}
+                                                                            height={40}
+                                                                            fontSize={10}
+                                                                            background="transparent"
+                                                                            lineColor="#1a202c"
+                                                                            displayValue={false}
+                                                                            format="CODE128"
+                                                                            style={{
+                                                                                transform: 'rotate(-90deg)',
+                                                                                transformOrigin: 'center',
+                                                                            }}
+                                                                        />
+                                                                    </div>
+                                                                    <div className={cx('barcode-text')}>
+                                                                        {coupon.id + 7878521112}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                     );
                                                 })}
@@ -1108,16 +1170,13 @@ const CheckOut = () => {
                                             </div>
                                         )}
                                     </div>
-                                    
+
                                     <div className={cx('coupon-modal-footer')}>
-                                        <button 
-                                            className={cx('btn-cancel')} 
-                                            onClick={() => setShowCouponModal(false)}
-                                        >
+                                        <button className={cx('btn-cancel')} onClick={() => setShowCouponModal(false)}>
                                             Cancel
                                         </button>
-                                        <button 
-                                            className={cx('btn-apply')} 
+                                        <button
+                                            className={cx('btn-apply')}
                                             onClick={handleApplyCoupon}
                                             disabled={!selectedCoupon}
                                         >
