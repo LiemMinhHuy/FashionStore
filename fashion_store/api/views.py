@@ -1500,7 +1500,7 @@ class CouponViewSet(viewsets.ModelViewSet):
     
     def get_permissions(self):
         """Set permissions based on action"""
-        if self.action in ['list', 'retrieve', 'validate_coupon', 'my_coupons']:
+        if self.action in ['list', 'retrieve', 'validate_coupon', 'my_coupons', 'claim_coupon']:
             return [permissions.IsAuthenticated()]
         elif self.action in ['create', 'update', 'partial_update', 'destroy']:
             # Only staff can create/update/delete coupons
@@ -1534,6 +1534,66 @@ class CouponViewSet(viewsets.ModelViewSet):
                     coupon_type='public'
                 ).order_by('-created_at')
     
+    @action(detail=False, methods=['post'], url_path='claim')
+    def claim_coupon(self, request):
+        """Allow customers to claim a coupon by entering its code"""
+        try:
+            customer = Customer.objects.get(id=request.user.id)
+        except Customer.DoesNotExist:
+            return Response({
+                'error': 'User is not a customer'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        code = request.data.get('code', '').strip().upper()
+        if not code:
+            return Response({
+                'error': 'Coupon code is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            coupon = Coupon.objects.get(code=code, is_active=True)
+        except Coupon.DoesNotExist:
+            return Response({
+                'error': 'Invalid coupon code or coupon is not active'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if it's a private coupon and if customer already has access
+        if coupon.coupon_type == 'private':
+            if CustomerCoupon.objects.filter(customer=customer, coupon=coupon).exists():
+                return Response({
+                    'error': 'You already have this coupon in your account'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Assign the private coupon to the customer
+            CustomerCoupon.objects.create(
+                customer=customer,
+                coupon=coupon
+            )
+            
+            return Response({
+                'message': f'Coupon {coupon.code} successfully added to your account!',
+                'coupon': serializers.CouponSerializer(coupon).data
+            })
+        
+        # For public coupons, just confirm they can claim it
+        elif coupon.coupon_type in ['public', 'first_time', 'loyalty']:
+            # Check if customer can use this coupon
+            can_use, message = coupon.can_be_used_by_customer(customer)
+            
+            if can_use:
+                return Response({
+                    'message': f'Coupon {coupon.code} is now available for use in your account!',
+                    'coupon': serializers.CouponSerializer(coupon).data
+                })
+            else:
+                return Response({
+                    'error': message
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({
+            'error': 'Invalid coupon type'
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     @action(detail=False, methods=['post'], url_path='validate')
     def validate_coupon(self, request):
         """Validate a coupon for a specific order amount"""

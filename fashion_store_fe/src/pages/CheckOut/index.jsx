@@ -1011,7 +1011,7 @@ const CheckOut = () => {
                         </div>
 
                         {selectedCoupon ? (
-                            <div>
+                            <div className={cx('coupon-selected')}>
                                 <div key={selectedCoupon.id} className={cx('coupon-item', {})}>
                                     <div className={cx('coupon-left')}>
                                         <p className={cx('coupon-code')}>{selectedCoupon.code}</p>
@@ -1053,7 +1053,7 @@ const CheckOut = () => {
                                         </div>
                                     </div>
                                 </div>
-                                <button className={cx('remove-coupon-btn')} onClick={handleRemoveCoupon}>
+                                <button className={cx('btn-remove')} onClick={handleRemoveCoupon}>
                                     Remove
                                 </button>
                             </div>
