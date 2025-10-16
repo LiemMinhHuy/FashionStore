@@ -32,7 +32,6 @@ const Alert = ({ type = 'info', message, onClose, link, className, autoClose = f
   return (
     <div className={cx('alert', type, className)} role="alert">
       {icons[type]}
-      <span className="sr-only">{type}</span>
       <div className={cx('message')}>
         {message}
         {link && (

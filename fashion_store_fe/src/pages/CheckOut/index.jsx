@@ -482,7 +482,13 @@ const CheckOut = () => {
 
         let payload = {
             payment_method: paymentMethod,
+            total_amount: finalTotal,
         };
+
+        // Add coupon code to payload if a coupon is selected
+        if (selectedCoupon) {
+            payload.coupon_code = selectedCoupon.code;
+        }
 
         // Priority 1: Use currentDisplayAddress if available (the address shown in existing-addresses-section)
         if (currentDisplayAddress && currentDisplayAddress.id) {
@@ -1211,7 +1217,7 @@ const CheckOut = () => {
                                             <div className={cx('quantity-input')}>{item.quantity}</div>
                                             <PlusIcon className={cx('quantity-icon')} />
                                         </div>
-                                        <span className={cx('item-price')}>{item.product.price}đ</span>
+                                        <span className={cx('item-price')}>${item.product.price}</span>
                                     </div>
                                 </div>
                             ))}
@@ -1228,14 +1234,14 @@ const CheckOut = () => {
 
                             <div className={cx('item-total-container')}>
                                 <span className={cx('item-total-title')}>Discount</span>
-                                <span className={cx('item-total', 'discount')}>-${discountAmount.toFixed(2)}</span>
+                                <span className={cx('item-total', 'discount')}>-${discountAmount.toFixed(0)}</span>
                             </div>
 
                             <span className={cx('line')}></span>
 
                             <div className={cx('item-total-container')}>
                                 <span className={cx('item-total-title')}>Total</span>
-                                <span className={cx('item-total')}>${finalTotal.toFixed(2)}</span>
+                                <span className={cx('item-total')}>${finalTotal.toFixed(0)}</span>
                             </div>
 
                             <div className={cx('item-total-container')}>

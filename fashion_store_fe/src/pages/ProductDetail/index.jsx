@@ -19,7 +19,7 @@ function ProductDetail() {
 	const [error, setError] = useState(null); // State để lưu lỗi nếu có
 	const [success, setSuccess] = useState(null);
 	const currentUser = useContext(MyUserContext);
-	const { addToCart } = useContext(CartContext); // Sử dụng addToCart từ CartContext
+	const { addToCart } = useContext(CartContext); // Use addToCart from CartContext
 	const [quantity, setQuantity] = useState(1);
 	const [selectedImageUrl, setSelectedImageUrl] = useState('');
 
@@ -32,21 +32,21 @@ function ProductDetail() {
 
 	const handleAddToCart = async () => {
 		if (!currentUser) {
-			setError('Bạn cần đăng nhập để thêm sản phẩm vào giỏ hàng.');
+			setError('You need to login to add products to cart.');
 			return;
 		}
 		try {
 			await addToCart([{ product_id: productId, quantity: quantity }]);
-			setSuccess('Sản phẩm đã được thêm vào giỏ hàng.');
+			setSuccess('Product has been added to cart.');
 			setError(null);
 		} catch (err) {
-			console.log('Lỗi chi tiết:', err.response?.data);
-			setError(err.response?.data.detail || 'Có lỗi xảy ra khi thêm vào giỏ hàng.');
+			console.log('Detailed error:', err.response?.data);
+			setError(err.response?.data.detail || 'An error occurred while adding to cart.');
 			setSuccess(null);
 		}
 	};
 
-	// Fetch data khi component mount
+	// Fetch data when component mounts
 	useEffect(() => {
 		const fetchProduct = async () => {
 			try {
@@ -67,10 +67,10 @@ function ProductDetail() {
 			}
 		};
 
-		fetchProduct(); // Gọi hàm fetchProduct
+		fetchProduct(); // Call fetchProduct function
 	}, [productId]);
 
-	// Khi đã có product, đặt ảnh mặc định cho khung chính
+	// When product is available, set default image for main frame
 	useEffect(() => {
 		if (!product) return;
 		const thumbUrl = product.thumbnail ? product.thumbnail.replace('/media/https%3A', 'https://') : '';
@@ -80,28 +80,28 @@ function ProductDetail() {
 		setSelectedImageUrl(thumbUrl || firstGalleryUrl || '');
 	}, [product]);
 
-	// Nếu đang tải dữ liệu
+	// If data is loading
 	if (loading) {
 		return <h2>Loading product details...</h2>;
 	}
 
-	// Nếu có lỗi
+	// If there is an error
 	if (error) {
 		return <RequireAuth/>;
 	}
 
-	// Kiểm tra xem sản phẩm có hợp lệ không trước khi truy cập thuộc tính
+	// Check if product is valid before accessing properties
 	if (!product) {
-		return <h2>Product not found.</h2>; // Thông báo nếu không có sản phẩm
+		return <h2>Product not found.</h2>; // Notify if no product is available
 	}
 
-	// Chuẩn hóa danh sách URL ảnh: thumbnail + gallery
+	// Normalize image URL list: thumbnail + gallery
 	const imageUrls = [
 		product.thumbnail ? product.thumbnail.replace('/media/https%3A', 'https://') : '',
 		...(product.images || []).map((img) => img.image.replace('/media/https%3A', 'https://')),
 	].filter(Boolean);
 
-	// Hiển thị thông tin sản phẩm
+	// Display product information
 	return (
 		<div className={cx('product-detail')}>
 			<Breadcrumb className={cx('breadcrumb')}>
