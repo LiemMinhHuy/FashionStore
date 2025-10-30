@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+import dj_database_url
 
 # Tải biến môi trường từ file .env
 load_dotenv()
@@ -11,11 +12,13 @@ load_dotenv()
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-default-key-for-development-only")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False") == "True"
 
+# Allow all hosts in production (you may want to restrict this later)
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
@@ -31,6 +34,7 @@ INSTALLED_APPS = [
     'ckeditor_uploader',
     'oauth2_provider',
     'cloudinary',
+    'cloudinary_storage',
     'drf_yasg',
     'rest_framework',
     'rest_framework.authtoken',
@@ -88,6 +92,15 @@ DATABASES = {
     }
 }
 
+# If DATABASE_URL is provided (Railway's default), use it
+if 'DATABASE_URL' in os.environ:
+    import dj_database_url
+    db_from_env = dj_database_url.config(
+        conn_max_age=500,
+        conn_health_checks=True,
+    )
+    DATABASES['default'].update(db_from_env)
+
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
 
@@ -138,8 +151,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
 
 # Media files
 MEDIA_URL = '/media/'
@@ -150,14 +166,20 @@ CKEDITOR_UPLOAD_PATH = "fashionStore/images"
 
 # Cloudinary Configuration
 import cloudinary
+import cloudinary.uploader
+import cloudinary.api
 
 cloudinary.config(
-    cloud_name="ddoebyozj",
-    api_key="277385837862538",
-    api_secret="T9Hzhi-HFkb8lO5OW5NmmgUE2kA"
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME", "ddoebyozj"),
+    api_key=os.getenv("CLOUDINARY_API_KEY", "277385837862538"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET", "T9Hzhi-HFkb8lO5OW5NmmgUE2kA")
 )
 
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+# Kiểm tra nếu đang chạy trên Railway thì sử dụng Cloudinary storage
+if 'RAILWAY_STATIC_URL' in os.environ:
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+else:
+    DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
@@ -183,11 +205,28 @@ CORS_ALLOW_METHODS = [
     'PUT',
 ]
 
+# Update ALLOWED_HOSTS for Railway deployment
 ALLOWED_HOSTS = [
     '127.0.0.1',
     'localhost',
     '8531-2001-ee0-4f02-5180-759d-c770-f8c8-8ff0.ngrok-free.app',  # Thay bằng URL Ngrok của bạn
 ]
+
+# Add Railway domains to ALLOWED_HOSTS
+railway_url = os.environ.get('RAILWAY_STATIC_URL')
+if railway_url:
+    ALLOWED_HOSTS.append(railway_url.split('//')[1])
+
+# Add CORS origins for Railway
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://accounts.google.com",
+]
+
+# Add Railway frontend URL to CORS origins
+if railway_url:
+    CORS_ALLOWED_ORIGINS.append(railway_url)
 
 CORS_ALLOW_HEADERS = [
     'accept',

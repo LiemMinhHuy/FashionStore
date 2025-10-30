@@ -95,9 +95,6 @@ const Footer = () => {
                                             <Link to="/contact" className={cx('navLink')}>
                                                 Contact
                                             </Link>
-                                            <Link to="/faq" className={cx('navLink')}>
-                                                FAQ
-                                            </Link>
                                         </div>
                                     </div>
                                 </div>

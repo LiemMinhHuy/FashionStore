@@ -1,0 +1,7 @@
+# Ignore frontend files during backend build
+../fashion_store_fe/
+.gitignore
+README.md
+.env
+*.md
+*.sqlite3
